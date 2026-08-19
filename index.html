@@ -23,28 +23,6 @@
             color: #f8fafc;
         }
 
-        /* High Contrast Custom Highlight CSS Classes */
-        .cell-selected {
-            background-color: #2563eb !important; /* Bright Blue 600 */
-            color: #ffffff !important;
-            box-shadow: inset 0 0 0 2px #93c5fd, 0 0 14px rgba(37, 99, 235, 0.9) !important;
-            z-index: 20 !important;
-        }
-        .cell-same-value {
-            background-color: #3730a3 !important; /* Indigo 800 */
-            color: #fbbf24 !important; /* Amber 400 */
-            font-weight: 900 !important;
-            z-index: 10 !important;
-        }
-        .cell-highlight-area {
-            background-color: #374151 !important; /* Slate/Gray 700 - Highly Visible Gray in Dark Mode */
-            color: #ffffff !important;
-        }
-        .cell-base {
-            background-color: #0f172a !important; /* Slate 900 */
-            color: #cbd5e1 !important;
-        }
-
         /* 3x3 Grid Thicker Borders */
         .border-r-strong { border-right: 3px solid #64748b !important; }
         .border-b-strong { border-bottom: 3px solid #64748b !important; }
@@ -489,7 +467,7 @@
                     const cellId = `${r}-${c}`;
                     
                     // Borders for 3x3 Grid
-                    let borderClasses = 'border border-slate-800 flex items-center justify-center relative cursor-pointer font-bold text-xl transition-all duration-150 ';
+                    let borderClasses = 'border border-slate-800/80 flex items-center justify-center relative cursor-pointer font-bold text-xl transition-all duration-150 ';
                     if (c === 2 || c === 5) borderClasses += 'border-r-strong ';
                     if (r === 2 || r === 5) borderClasses += 'border-b-strong ';
                     cell.className = borderClasses;
@@ -501,17 +479,15 @@
                     const cellVal = board[r][c];
                     const isSameValue = selectedVal !== 0 && cellVal === selectedVal;
 
-                    // High Contrast Highlighting System (Pure CSS for guaranteed mobile rendering)
-                    cell.classList.remove('cell-selected', 'cell-same-value', 'cell-highlight-area', 'cell-base');
-
+                    // Perfect Highlighting System (Restored Indigo-Blue Color Scheme)
                     if (isCellSelected) {
-                        cell.classList.add('cell-selected');
+                        cell.classList.add('bg-indigo-600', 'text-white', 'shadow-lg', 'shadow-indigo-500/50', 'z-20');
                     } else if (isSameValue) {
-                        cell.classList.add('cell-same-value');
+                        cell.classList.add('bg-indigo-950', 'text-amber-300', 'font-black', 'z-10');
                     } else if (primaryRow !== -1 && (isSameRowOrCol || isSameSubgrid)) {
-                        cell.classList.add('cell-highlight-area');
+                        cell.classList.add('bg-indigo-900/60', 'text-slate-100');
                     } else {
-                        cell.classList.add('cell-base');
+                        cell.classList.add('bg-slate-900', 'text-slate-300');
                     }
 
                     // Value Rendering or Pencil Notes
@@ -545,7 +521,7 @@
                         }
                     }
 
-                    // Unified Pointer Event Listeners for Mobile Touch & Desktop Click
+                    // Pointer Events for Drag & Touch Selection
                     cell.addEventListener('pointerdown', (e) => {
                         e.preventDefault();
                         handleCellSelectStart(r, c, e);
