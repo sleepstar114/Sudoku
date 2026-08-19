@@ -3,84 +3,53 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>프리미엄 스도쿠 (Sudoku Master)</title>
-    
-    <!-- PWA & Mobile Web App Meta Tags for Mobile/Galaxy S25 -->
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#0f172a">
-    <meta name="description" content="갤럭시 S25 최적화 프리미엄 스도쿠 퍼즐 게임">
-
-    <!-- Tailwind CSS -->
+    <title>Sudoku Master</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- FontAwesome Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Canvas Confetti for Victory Effect -->
-    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
-    <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    fontFamily: {
-                        sans: ['"Plus Jakarta Sans"', 'sans-serif'],
-                    },
-                    colors: {
-                        brand: {
-                            50: '#f0f3ff',
-                            100: '#e0e7ff',
-                            500: '#6366f1',
-                            600: '#4f46e5',
-                            700: '#4338ca',
-                        }
-                    }
-                }
-            }
-        }
-    </script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
-        body {
-            font-family: 'Plus Jakarta Sans', sans-serif;
-            touch-action: manipulation;
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap');
+        
+        * {
             user-select: none;
             -webkit-user-select: none;
         }
 
-        /* 3x3 Grid thick borders */
-        .sudoku-cell {
-            aspect-ratio: 1 / 1;
-            transition: background-color 0.15s ease, transform 0.1s ease;
-            -webkit-tap-highlight-color: transparent; /* Disable native browser touch flash overlay */
+        body {
+            font-family: 'Inter', sans-serif;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+            background-color: #0b0f19;
+            color: #f8fafc;
         }
+
+        /* 확실하고 유효한 고대비 하이라이트 전용 커스텀 CSS (순수 CSS 적용으로 AMOLED/모바일 완벽 대응) */
+        .cell-selected {
+            background-color: #3b82f6 !important; /* Bright Blue 500 */
+            color: #ffffff !important;
+            box-shadow: inset 0 0 0 2px #93c5fd, 0 0 12px rgba(59, 130, 246, 0.8) !important;
+            z-index: 20 !important;
+        }
+        .cell-same-value {
+            background-color: #312e81 !important; /* Deep Indigo 900 */
+            color: #fbbf24 !important; /* Amber 400 */
+            font-weight: 900 !important;
+            z-index: 10 !important;
+        }
+        .cell-highlight-area {
+            background-color: #4b5563 !important; /* Pure Slate/Zinc Medium Gray - AMOLED에서도 명확히 잘 보임 */
+            color: #ffffff !important;
+        }
+        .cell-base {
+            background-color: #0f172a !important; /* Dark Slate 900 */
+            color: #cbd5e1 !important;
+        }
+
+        /* 3x3 Grid Thicker Borders */
+        .border-r-strong { border-right: 3px solid #64748b !important; }
+        .border-b-strong { border-bottom: 3px solid #64748b !important; }
         
-        .border-r-thick {
-            border-right-width: 3px !important;
-        }
-        .border-b-thick {
-            border-bottom-width: 3px !important;
-        }
-
-        /* Note subgrid layout */
-        .notes-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            grid-template-rows: repeat(3, 1fr);
-            width: 100%;
-            height: 100%;
-            font-size: 0.65rem;
-            line-height: 1;
-        }
-
-        /* Keypad press animation */
-        .btn-act:active {
-            transform: scale(0.93);
-        }
-
-        /* Shake animation for invalid note attempts */
+        /* Shaking Animation for Incorrect Input */
         @keyframes shake {
             0%, 100% { transform: translateX(0); }
             20%, 60% { transform: translateX(-4px); }
@@ -88,698 +57,324 @@
         }
         .animate-shake {
             animation: shake 0.3s ease-in-out;
+            box-shadow: inset 0 0 0 2px #ef4444 !important;
         }
 
-        /* Soft pulsing for highlights */
-        @keyframes pulse-subtle {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.85; }
+        /* Pencil Note Highlight Glow */
+        .note-highlight {
+            background-color: #d97706 !important; /* Amber 600 */
+            color: #ffffff !important;
+            border-radius: 2px;
+            font-weight: bold;
         }
-        .animate-pulse-subtle {
-            animation: pulse-subtle 2s infinite ease-in-out;
+
+        /* Custom Scrollbar for Leaderboard */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1e293b;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #475569;
+            border-radius: 4px;
         }
     </style>
 </head>
-<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col justify-between items-center p-3 sm:p-6 transition-colors duration-300">
+<body class="min-h-screen flex flex-col items-center justify-between p-2 sm:p-4 max-w-md mx-auto">
 
-    <!-- Header -->
-    <header class="w-full max-w-lg flex justify-between items-center mb-4">
-        <div class="flex items-center gap-2">
-            <div class="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center text-white text-xl font-bold shadow-lg shadow-indigo-500/30">
-                <i class="fa-solid fa-grid-2"></i>
-                <span>9</span>
+    <!-- Top Header Navigation -->
+    <header class="w-full flex items-center justify-between py-2 px-1">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center font-black text-xl text-white shadow-lg shadow-indigo-500/30">
+                9
             </div>
             <div>
-                <h1 class="text-xl sm:text-2xl font-extrabold tracking-tight text-white">Sudoku <span class="text-indigo-400">Master</span></h1>
-                <p class="text-xs text-slate-400">매일 만나는 두뇌 스티뮬레이터</p>
+                <h1 class="text-xl font-black tracking-tight text-white leading-none">Sudoku <span class="text-indigo-400">Master</span></h1>
+                <p class="text-xs text-slate-400 mt-0.5">매일 만나는 두뇌 스티뮬레이터</p>
             </div>
         </div>
-
-        <!-- Controls: Theme & Stats -->
-        <div class="flex items-center gap-2">
-            <button id="stats-btn" class="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-400 hover:text-amber-300 transition shadow" title="상황판 (기록/통계)">
-                <i class="fa-solid fa-trophy"></i>
+        <div class="flex gap-2">
+            <button id="btn-stats" onclick="openStatsModal()" class="w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-400 flex items-center justify-center transition active:scale-95 shadow-md">
+                <i class="fa-solid fa-trophy text-lg"></i>
             </button>
-            <button id="pause-btn" class="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition shadow" title="일시정지">
-                <i id="pause-icon" class="fa-solid fa-pause"></i>
+            <button id="btn-pause" onclick="togglePause()" class="w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center transition active:scale-95 shadow-md">
+                <i id="pause-icon" class="fa-solid fa-pause text-lg"></i>
             </button>
-            <button id="restart-btn" class="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition shadow" title="다시 시작">
-                <i class="fa-solid fa-rotate-right"></i>
+            <button onclick="confirmRestart()" class="w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center transition active:scale-95 shadow-md">
+                <i class="fa-solid fa-rotate-right text-lg"></i>
             </button>
         </div>
     </header>
 
-    <!-- Game Status Bar & Difficulty Selector -->
-    <main class="w-full max-w-lg flex flex-col items-center gap-4">
-        <!-- Difficulty Pill Bar -->
-        <div class="w-full bg-slate-800/80 p-1.5 rounded-2xl flex justify-between gap-1 shadow-inner backdrop-blur">
-            <button data-diff="easy" class="diff-btn flex-1 py-2 text-xs sm:text-sm font-semibold rounded-xl text-slate-400 hover:text-white transition duration-200">쉬움</button>
-            <button data-diff="medium" class="diff-btn flex-1 py-2 text-xs sm:text-sm font-semibold rounded-xl text-slate-400 hover:text-white transition duration-200">보통</button>
-            <button data-diff="hard" class="diff-btn flex-1 py-2 text-xs sm:text-sm font-semibold rounded-xl text-slate-400 hover:text-white transition duration-200">어려움</button>
-            <button data-diff="expert" class="diff-btn flex-1 py-2 text-xs sm:text-sm font-semibold rounded-xl text-slate-400 hover:text-white transition duration-200">전문가</button>
+    <!-- Difficulty Selector Tabs -->
+    <div class="w-full grid grid-cols-4 gap-1.5 my-2 p-1 bg-slate-900/80 rounded-2xl border border-slate-800">
+        <button onclick="setDifficulty('easy')" id="diff-easy" class="diff-btn py-2 text-xs font-bold rounded-xl transition text-slate-400 hover:text-white">쉬움</button>
+        <button onclick="setDifficulty('medium')" id="diff-medium" class="diff-btn py-2 text-xs font-bold rounded-xl transition bg-indigo-600 text-white shadow-md shadow-indigo-600/30">보통</button>
+        <button onclick="setDifficulty('hard')" id="diff-hard" class="diff-btn py-2 text-xs font-bold rounded-xl transition text-slate-400 hover:text-white">어려움</button>
+        <button onclick="setDifficulty('expert')" id="diff-expert" class="diff-btn py-2 text-xs font-bold rounded-xl transition text-slate-400 hover:text-white">전문가</button>
+    </div>
+
+    <!-- Status Info Bar (Score, Mistakes, Timer) -->
+    <div class="w-full flex items-center justify-between px-3 py-2 bg-slate-900/50 rounded-xl border border-slate-800/80 my-1 text-xs font-semibold">
+        <div class="flex items-center gap-1.5 text-amber-400">
+            <i class="fa-solid fa-star"></i>
+            <span>점수: <span id="score-val" class="font-bold text-white text-sm">0</span></span>
+            <span id="combo-badge" class="hidden ml-1 px-1.5 py-0.5 text-[10px] bg-amber-500/20 text-amber-300 rounded-md border border-amber-500/40 font-black">2x COMBO</span>
         </div>
-
-        <!-- Timer, Mistake & Score Counters -->
-        <div class="w-full grid grid-cols-3 items-center px-3 py-2 bg-slate-800/40 rounded-xl border border-slate-700/50 text-xs sm:text-sm">
-            <div class="flex items-center gap-1.5 text-slate-300 justify-start">
-                <i class="fa-solid fa-star text-amber-400"></i>
-                <span class="text-slate-400">점수:</span>
-                <span id="score-display" class="font-bold text-amber-400">0</span>
-            </div>
-            <div class="flex items-center gap-1.5 text-slate-300 justify-center">
-                <i class="fa-solid fa-circle-exclamation text-rose-400"></i>
-                <span>실수: <span id="mistake-count" class="font-bold text-rose-400">0</span>/3</span>
-            </div>
-            <div class="flex items-center gap-1.5 text-slate-300 font-mono justify-end">
-                <i class="fa-regular fa-clock text-indigo-400"></i>
-                <span id="timer-display" class="font-bold text-white text-sm sm:text-base">00:00</span>
-            </div>
+        <div class="flex items-center gap-1.5 text-rose-400">
+            <i class="fa-solid fa-circle-exclamation"></i>
+            <span>실수: <span id="mistake-count" class="font-bold text-white text-sm">0</span>/3</span>
         </div>
-
-        <!-- Sudoku Board Wrapper -->
-        <div class="relative w-full aspect-square bg-slate-800 rounded-2xl p-2 sm:p-3 shadow-2xl border border-slate-700/80 overflow-hidden">
-            
-            <!-- Pause Overlay -->
-            <div id="pause-overlay" class="hidden absolute inset-0 bg-slate-900/90 backdrop-blur-md z-30 flex flex-col justify-center items-center gap-4">
-                <i class="fa-solid fa-circle-pause text-5xl text-indigo-400 animate-pulse"></i>
-                <p class="text-xl font-bold text-white">일시정지 상태입니다</p>
-                <button id="resume-btn" class="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl shadow-lg transition">
-                    게임 재개하기
-                </button>
-            </div>
-
-            <!-- 9x9 Grid Board -->
-            <div id="sudoku-grid" class="grid grid-cols-9 w-full h-full border-2 border-slate-600 rounded-xl overflow-hidden bg-slate-900">
-                <!-- 81 Cells dynamically generated by JavaScript -->
-            </div>
-        </div>
-
-        <!-- Controls & Action Tools -->
-        <div class="w-full grid grid-cols-5 gap-1.5 sm:gap-2 text-[11px] sm:text-xs font-semibold">
-            <button id="undo-btn" class="btn-act flex flex-col items-center justify-center p-2 sm:p-2.5 bg-slate-800 hover:bg-slate-700/80 text-slate-300 rounded-xl border border-slate-700/60 shadow transition">
-                <i class="fa-solid fa-rotate-left text-base sm:text-lg mb-1 text-indigo-400"></i>
-                <span>되돌리기</span>
-            </button>
-            <button id="erase-btn" class="btn-act flex flex-col items-center justify-center p-2 sm:p-2.5 bg-slate-800 hover:bg-slate-700/80 text-slate-300 rounded-xl border border-slate-700/60 shadow transition">
-                <i class="fa-solid fa-eraser text-base sm:text-lg mb-1 text-rose-400"></i>
-                <span>지우기</span>
-            </button>
-            <button id="pencil-btn" class="btn-act relative flex flex-col items-center justify-center p-2 sm:p-2.5 bg-slate-800 hover:bg-slate-700/80 text-slate-300 rounded-xl border border-slate-700/60 shadow transition">
-                <span id="pencil-badge" class="absolute top-1 right-1 sm:top-1.5 sm:right-1.5 px-1 py-0.2 text-[8px] sm:text-[9px] bg-slate-600 text-slate-300 rounded-full font-bold uppercase">OFF</span>
-                <i class="fa-solid fa-pencil text-base sm:text-lg mb-1 text-amber-400"></i>
-                <span>메모 모드</span>
-            </button>
-
-            <!-- Auto-Fill Candidates / Clear Notes Button -->
-            <button id="auto-notes-btn" class="btn-act flex flex-col items-center justify-center p-2 sm:p-2.5 bg-slate-800 hover:bg-slate-700/80 text-slate-300 rounded-xl border border-slate-700/60 shadow transition" title="후보 메모 자동 작성 및 일괄 삭제 토글">
-                <i class="fa-solid fa-wand-magic-sparkles text-base sm:text-lg mb-1 text-teal-400"></i>
-                <span>자동 메모</span>
-            </button>
-
-            <button id="hint-btn" class="btn-act flex flex-col items-center justify-center p-2 sm:p-2.5 bg-slate-800 hover:bg-slate-700/80 text-slate-300 rounded-xl border border-slate-700/60 shadow transition">
-                <i class="fa-regular fa-lightbulb text-base sm:text-lg mb-1 text-amber-300"></i>
-                <span>힌트</span>
-            </button>
-        </div>
-
-        <!-- Numpad (1-9) with Remaining Counts -->
-        <div class="w-full grid grid-cols-9 gap-1 sm:gap-1.5">
-            <button class="num-btn btn-act flex flex-col items-center justify-center py-2 sm:py-3 bg-slate-800 hover:bg-indigo-600 active:bg-indigo-700 text-white font-extrabold rounded-xl shadow border border-slate-700/60 transition" data-num="1">
-                <span class="text-base sm:text-xl font-black leading-none">1</span>
-                <span class="num-count text-[10px] sm:text-xs text-slate-400 font-medium mt-0.5 leading-none" data-count-num="1">9</span>
-            </button>
-            <button class="num-btn btn-act flex flex-col items-center justify-center py-2 sm:py-3 bg-slate-800 hover:bg-indigo-600 active:bg-indigo-700 text-white font-extrabold rounded-xl shadow border border-slate-700/60 transition" data-num="2">
-                <span class="text-base sm:text-xl font-black leading-none">2</span>
-                <span class="num-count text-[10px] sm:text-xs text-slate-400 font-medium mt-0.5 leading-none" data-count-num="2">9</span>
-            </button>
-            <button class="num-btn btn-act flex flex-col items-center justify-center py-2 sm:py-3 bg-slate-800 hover:bg-indigo-600 active:bg-indigo-700 text-white font-extrabold rounded-xl shadow border border-slate-700/60 transition" data-num="3">
-                <span class="text-base sm:text-xl font-black leading-none">3</span>
-                <span class="num-count text-[10px] sm:text-xs text-slate-400 font-medium mt-0.5 leading-none" data-count-num="3">9</span>
-            </button>
-            <button class="num-btn btn-act flex flex-col items-center justify-center py-2 sm:py-3 bg-slate-800 hover:bg-indigo-600 active:bg-indigo-700 text-white font-extrabold rounded-xl shadow border border-slate-700/60 transition" data-num="4">
-                <span class="text-base sm:text-xl font-black leading-none">4</span>
-                <span class="num-count text-[10px] sm:text-xs text-slate-400 font-medium mt-0.5 leading-none" data-count-num="4">9</span>
-            </button>
-            <button class="num-btn btn-act flex flex-col items-center justify-center py-2 sm:py-3 bg-slate-800 hover:bg-indigo-600 active:bg-indigo-700 text-white font-extrabold rounded-xl shadow border border-slate-700/60 transition" data-num="5">
-                <span class="text-base sm:text-xl font-black leading-none">5</span>
-                <span class="num-count text-[10px] sm:text-xs text-slate-400 font-medium mt-0.5 leading-none" data-count-num="5">9</span>
-            </button>
-            <button class="num-btn btn-act flex flex-col items-center justify-center py-2 sm:py-3 bg-slate-800 hover:bg-indigo-600 active:bg-indigo-700 text-white font-extrabold rounded-xl shadow border border-slate-700/60 transition" data-num="6">
-                <span class="text-base sm:text-xl font-black leading-none">6</span>
-                <span class="num-count text-[10px] sm:text-xs text-slate-400 font-medium mt-0.5 leading-none" data-count-num="6">9</span>
-            </button>
-            <button class="num-btn btn-act flex flex-col items-center justify-center py-2 sm:py-3 bg-slate-800 hover:bg-indigo-600 active:bg-indigo-700 text-white font-extrabold rounded-xl shadow border border-slate-700/60 transition" data-num="7">
-                <span class="text-base sm:text-xl font-black leading-none">7</span>
-                <span class="num-count text-[10px] sm:text-xs text-slate-400 font-medium mt-0.5 leading-none" data-count-num="7">9</span>
-            </button>
-            <button class="num-btn btn-act flex flex-col items-center justify-center py-2 sm:py-3 bg-slate-800 hover:bg-indigo-600 active:bg-indigo-700 text-white font-extrabold rounded-xl shadow border border-slate-700/60 transition" data-num="8">
-                <span class="text-base sm:text-xl font-black leading-none">8</span>
-                <span class="num-count text-[10px] sm:text-xs text-slate-400 font-medium mt-0.5 leading-none" data-count-num="8">9</span>
-            </button>
-            <button class="num-btn btn-act flex flex-col items-center justify-center py-2 sm:py-3 bg-slate-800 hover:bg-indigo-600 active:bg-indigo-700 text-white font-extrabold rounded-xl shadow border border-slate-700/60 transition" data-num="9">
-                <span class="text-base sm:text-xl font-black leading-none">9</span>
-                <span class="num-count text-[10px] sm:text-xs text-slate-400 font-medium mt-0.5 leading-none" data-count-num="9">9</span>
-            </button>
-        </div>
-    </main>
-
-    <!-- Footer -->
-    <footer class="mt-6 text-center text-xs text-slate-500">
-        <p>드래그 또는 터치로 다중 선택하여 메모를 한번에 입력할 수 있습니다.</p>
-    </footer>
-
-    <!-- Win Modal -->
-    <div id="win-modal" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
-        <div class="bg-slate-900 border border-indigo-500/30 rounded-3xl p-6 sm:p-8 max-w-sm w-full text-center shadow-2xl animate-bounce-subtle">
-            <div class="w-16 h-16 bg-emerald-500/20 text-emerald-400 rounded-full flex items-center justify-center text-3xl mx-auto mb-3 border border-emerald-500/40">
-                <i class="fa-solid fa-trophy"></i>
-            </div>
-            <div id="new-record-badge" class="hidden inline-block px-3 py-0.5 mb-2 bg-amber-500/20 text-amber-300 border border-amber-500/40 rounded-full text-xs font-bold animate-pulse">
-                🏆 최고 기록 갱신!
-            </div>
-            <h2 class="text-2xl font-black text-white mb-1">축하합니다!</h2>
-            <p class="text-xs text-slate-400 mb-5">스도쿠 퍼즐을 성공적으로 해결했습니다!</p>
-
-            <div class="bg-slate-800/80 rounded-2xl p-4 mb-6 space-y-2 text-xs sm:text-sm border border-slate-700/50">
-                <div class="flex justify-between text-slate-300">
-                    <span>난이도</span>
-                    <span id="win-diff" class="font-bold text-indigo-400">보통</span>
-                </div>
-                <div class="flex justify-between text-slate-300">
-                    <span>클리어 시간</span>
-                    <span id="win-time" class="font-bold text-white">03:45</span>
-                </div>
-                <div class="flex justify-between text-slate-300">
-                    <span>실수 횟수</span>
-                    <span id="win-mistakes" class="font-bold text-rose-400">1회</span>
-                </div>
-                <div class="flex justify-between text-slate-300 pt-2 border-t border-slate-700/60">
-                    <span class="font-semibold text-amber-300">최종 점수</span>
-                    <span id="win-score" class="font-black text-amber-400 text-base">2,450 점</span>
-                </div>
-            </div>
-
-            <div class="flex gap-2">
-                <button id="modal-stats-view-btn" class="flex-1 py-3 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold rounded-xl border border-slate-700 transition text-xs sm:text-sm">
-                    상황판 보기
-                </button>
-                <button id="modal-newgame-btn" class="flex-1 py-3 bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white font-bold rounded-xl shadow-lg transition text-xs sm:text-sm">
-                    새 게임
-                </button>
-            </div>
+        <div class="flex items-center gap-1.5 text-indigo-300">
+            <i class="fa-solid fa-clock"></i>
+            <span id="timer-display" class="font-mono text-sm font-bold text-white">00:00</span>
         </div>
     </div>
 
-    <!-- Stats & Record Dashboard Modal (상황판) -->
-    <div id="stats-modal" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
-        <div class="bg-slate-900 border border-indigo-500/30 rounded-3xl p-5 sm:p-7 max-w-md w-full shadow-2xl flex flex-col max-h-[85vh]">
-            <!-- Modal Header -->
-            <div class="flex justify-between items-center mb-4">
-                <div class="flex items-center gap-2">
-                    <div class="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center">
-                        <i class="fa-solid fa-trophy"></i>
-                    </div>
-                    <h2 class="text-lg sm:text-xl font-bold text-white">전적 & 상황판</h2>
-                </div>
-                <button id="close-stats-btn" class="text-slate-400 hover:text-white p-1 rounded-lg transition">
-                    <i class="fa-solid fa-xmark text-xl"></i>
-                </button>
-            </div>
+    <!-- Sudoku Board Grid -->
+    <div class="w-full my-2 relative">
+        <div id="sudoku-grid" class="w-full aspect-square grid grid-cols-9 bg-slate-800 border-2 border-slate-700 rounded-2xl overflow-hidden shadow-2xl touch-none">
+            <!-- 81 Cells generated dynamically -->
+        </div>
 
-            <!-- Stats Difficulty Tabs -->
-            <div class="bg-slate-800/90 p-1 rounded-xl flex justify-between gap-1 mb-4 border border-slate-700/60">
-                <button data-stats-diff="easy" class="stats-tab-btn flex-1 py-1.5 text-xs font-semibold rounded-lg text-slate-400 hover:text-white transition">쉬움</button>
-                <button data-stats-diff="medium" class="stats-tab-btn flex-1 py-1.5 text-xs font-semibold rounded-lg text-slate-400 hover:text-white transition">보통</button>
-                <button data-stats-diff="hard" class="stats-tab-btn flex-1 py-1.5 text-xs font-semibold rounded-lg text-slate-400 hover:text-white transition">어려움</button>
-                <button data-stats-diff="expert" class="stats-tab-btn flex-1 py-1.5 text-xs font-semibold rounded-lg text-slate-400 hover:text-white transition">전문가</button>
-            </div>
-
-            <!-- Summary Badges -->
-            <div class="grid grid-cols-4 gap-2 mb-4 text-center">
-                <div class="bg-slate-800/50 p-2 rounded-xl border border-slate-700/40">
-                    <div class="text-[10px] text-slate-400">플레이</div>
-                    <div id="stat-played" class="text-sm font-bold text-white mt-0.5">0</div>
-                </div>
-                <div class="bg-slate-800/50 p-2 rounded-xl border border-slate-700/40">
-                    <div class="text-[10px] text-slate-400">클리어</div>
-                    <div id="stat-cleared" class="text-sm font-bold text-emerald-400 mt-0.5">0</div>
-                </div>
-                <div class="bg-slate-800/50 p-2 rounded-xl border border-slate-700/40">
-                    <div class="text-[10px] text-slate-400">최고 점수</div>
-                    <div id="stat-best-score" class="text-sm font-bold text-amber-400 mt-0.5">0</div>
-                </div>
-                <div class="bg-slate-800/50 p-2 rounded-xl border border-slate-700/40">
-                    <div class="text-[10px] text-slate-400">최고 시간</div>
-                    <div id="stat-best-time" class="text-sm font-bold text-indigo-400 mt-0.5">--:--</div>
-                </div>
-            </div>
-
-            <!-- Record History Table Container -->
-            <div class="flex-1 overflow-y-auto pr-1 space-y-2 mb-4 min-h-[160px]">
-                <div class="text-xs font-semibold text-slate-400 px-1 mb-1">성공 기록 명예의 전당 (최근 기록순)</div>
-                <div id="records-list-container" class="space-y-2">
-                    <!-- Records rendered dynamically -->
-                </div>
-            </div>
-
-            <button id="reset-stats-btn" class="w-full py-2 bg-slate-800 hover:bg-rose-900/30 text-rose-400 hover:text-rose-300 font-semibold rounded-xl border border-slate-700 hover:border-rose-800/50 transition text-xs">
-                이 난이도 전적 초기화
+        <!-- Pause Overlay -->
+        <div id="pause-overlay" class="hidden absolute inset-0 bg-slate-950/90 backdrop-blur-md rounded-2xl flex flex-col items-center justify-center gap-4 z-30">
+            <i class="fa-solid fa-circle-pause text-5xl text-indigo-400 animate-pulse"></i>
+            <p class="text-lg font-bold text-white">일시 정지됨</p>
+            <button onclick="togglePause()" class="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl shadow-lg shadow-indigo-600/30 transition active:scale-95">
+                게임을 계속하기
             </button>
         </div>
     </div>
 
-    <!-- Game Over Modal -->
-    <div id="gameover-modal" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
-        <div class="bg-slate-900 border border-rose-500/30 rounded-3xl p-6 sm:p-8 max-w-sm w-full text-center shadow-2xl">
-            <div class="w-16 h-16 bg-rose-500/20 text-rose-400 rounded-full flex items-center justify-center text-3xl mx-auto mb-4 border border-rose-500/40">
-                <i class="fa-solid fa-skull-crossbones"></i>
-            </div>
-            <h2 class="text-2xl font-black text-white mb-1">게임 오버</h2>
-            <p class="text-sm text-slate-400 mb-6">3회 이상 오답을 입력하여 실패했습니다.</p>
+    <!-- Action Tools Bar -->
+    <div class="w-full grid grid-cols-5 gap-2 my-2">
+        <button onclick="undo()" class="flex flex-col items-center justify-center p-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 transition active:scale-95">
+            <i class="fa-solid fa-rotate-left text-base mb-1"></i>
+            <span class="text-[10px] font-medium">되돌리기</span>
+        </button>
+        <button onclick="eraseCell()" class="flex flex-col items-center justify-center p-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 transition active:scale-95">
+            <i class="fa-solid fa-eraser text-base mb-1 text-rose-400"></i>
+            <span class="text-[10px] font-medium">지우기</span>
+        </button>
+        <button id="pencil-btn" onclick="togglePencilMode()" class="relative flex flex-col items-center justify-center p-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 transition active:scale-95">
+            <span id="pencil-badge" class="absolute top-1 right-1.5 px-1 py-0.2 text-[8px] font-black rounded bg-slate-700 text-slate-400">OFF</span>
+            <i id="pencil-icon" class="fa-solid fa-pencil text-base mb-1 text-amber-400"></i>
+            <span class="text-[10px] font-medium">메모 모드</span>
+        </button>
+        <button onclick="autoFillNotes()" class="flex flex-col items-center justify-center p-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 transition active:scale-95">
+            <i class="fa-solid fa-wand-magic-sparkles text-base mb-1 text-emerald-400"></i>
+            <span class="text-[10px] font-medium">자동 메모</span>
+        </button>
+        <button onclick="useHint()" class="flex flex-col items-center justify-center p-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 transition active:scale-95">
+            <i class="fa-solid fa-lightbulb text-base mb-1 text-amber-300"></i>
+            <span class="text-[10px] font-medium">힌트</span>
+        </button>
+    </div>
 
-            <button id="modal-retry-btn" class="w-full py-3.5 bg-rose-600 hover:bg-rose-500 active:bg-rose-700 text-white font-bold rounded-xl shadow-lg transition">
-                다시 시도하기
+    <!-- Numpad 1 to 9 with Remaining Counter -->
+    <div class="w-full grid grid-cols-9 gap-1 my-1">
+        <button onclick="inputNumber(1)" class="num-btn flex flex-col items-center justify-center py-2.5 bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-xl transition active:scale-90">
+            <span class="text-lg font-black text-white leading-none">1</span>
+            <span id="count-1" class="text-[10px] font-bold text-slate-500 mt-0.5">9</span>
+        </button>
+        <button onclick="inputNumber(2)" class="num-btn flex flex-col items-center justify-center py-2.5 bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-xl transition active:scale-90">
+            <span class="text-lg font-black text-white leading-none">2</span>
+            <span id="count-2" class="text-[10px] font-bold text-slate-500 mt-0.5">9</span>
+        </button>
+        <button onclick="inputNumber(3)" class="num-btn flex flex-col items-center justify-center py-2.5 bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-xl transition active:scale-90">
+            <span class="text-lg font-black text-white leading-none">3</span>
+            <span id="count-3" class="text-[10px] font-bold text-slate-500 mt-0.5">9</span>
+        </button>
+        <button onclick="inputNumber(4)" class="num-btn flex flex-col items-center justify-center py-2.5 bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-xl transition active:scale-90">
+            <span class="text-lg font-black text-white leading-none">4</span>
+            <span id="count-4" class="text-[10px] font-bold text-slate-500 mt-0.5">9</span>
+        </button>
+        <button onclick="inputNumber(5)" class="num-btn flex flex-col items-center justify-center py-2.5 bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-xl transition active:scale-90">
+            <span class="text-lg font-black text-white leading-none">5</span>
+            <span id="count-5" class="text-[10px] font-bold text-slate-500 mt-0.5">9</span>
+        </button>
+        <button onclick="inputNumber(6)" class="num-btn flex flex-col items-center justify-center py-2.5 bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-xl transition active:scale-90">
+            <span class="text-lg font-black text-white leading-none">6</span>
+            <span id="count-6" class="text-[10px] font-bold text-slate-500 mt-0.5">9</span>
+        </button>
+        <button onclick="inputNumber(7)" class="num-btn flex flex-col items-center justify-center py-2.5 bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-xl transition active:scale-90">
+            <span class="text-lg font-black text-white leading-none">7</span>
+            <span id="count-7" class="text-[10px] font-bold text-slate-500 mt-0.5">9</span>
+        </button>
+        <button onclick="inputNumber(8)" class="num-btn flex flex-col items-center justify-center py-2.5 bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-xl transition active:scale-90">
+            <span class="text-lg font-black text-white leading-none">8</span>
+            <span id="count-8" class="text-[10px] font-bold text-slate-500 mt-0.5">9</span>
+        </button>
+        <button onclick="inputNumber(9)" class="num-btn flex flex-col items-center justify-center py-2.5 bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-xl transition active:scale-90">
+            <span class="text-lg font-black text-white leading-none">9</span>
+            <span id="count-9" class="text-[10px] font-bold text-slate-500 mt-0.5">9</span>
+        </button>
+    </div>
+
+    <!-- Instruction Helper Text -->
+    <p class="text-[11px] text-slate-500 text-center my-1">
+        드래그 또는 Ctrl/Shift+클릭으로 여러 칸 선택 후 동시에 메모를 입력할 수 있습니다.
+    </p>
+
+    <!-- Leaderboard / Stats Modal -->
+    <div id="stats-modal" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="w-full max-w-sm bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-2xl flex flex-col gap-4 max-h-[85vh]">
+            <div class="flex items-center justify-between pb-2 border-b border-slate-800">
+                <div class="flex items-center gap-2 text-amber-400 font-black text-lg">
+                    <i class="fa-solid fa-trophy"></i>
+                    <span>명예의 전당 & 상황판</span>
+                </div>
+                <button onclick="closeStatsModal()" class="w-8 h-8 rounded-full bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <!-- Modal Difficulty Filter Tabs -->
+            <div class="grid grid-cols-4 gap-1 p-1 bg-slate-950 rounded-xl border border-slate-800 text-xs font-bold">
+                <button onclick="switchStatsTab('easy')" id="tab-easy" class="stats-tab py-1.5 rounded-lg text-slate-400">쉬움</button>
+                <button onclick="switchStatsTab('medium')" id="tab-medium" class="stats-tab py-1.5 rounded-lg bg-indigo-600 text-white">보통</button>
+                <button onclick="switchStatsTab('hard')" id="tab-hard" class="stats-tab py-1.5 rounded-lg text-slate-400">어려움</button>
+                <button onclick="switchStatsTab('expert')" id="tab-expert" class="stats-tab py-1.5 rounded-lg text-slate-400">전문가</button>
+            </div>
+
+            <!-- Stats Overview Grid -->
+            <div class="grid grid-cols-3 gap-2 text-center">
+                <div class="bg-slate-950/60 p-2.5 rounded-xl border border-slate-800/80">
+                    <p class="text-[10px] text-slate-400 font-bold">총 플레이</p>
+                    <p id="stat-played" class="text-base font-black text-white mt-0.5">0</p>
+                </div>
+                <div class="bg-slate-950/60 p-2.5 rounded-xl border border-slate-800/80">
+                    <p class="text-[10px] text-slate-400 font-bold">성공 횟수</p>
+                    <p id="stat-won" class="text-base font-black text-emerald-400 mt-0.5">0</p>
+                </div>
+                <div class="bg-slate-950/60 p-2.5 rounded-xl border border-slate-800/80">
+                    <p class="text-[10px] text-slate-400 font-bold">승률</p>
+                    <p id="stat-winrate" class="text-base font-black text-indigo-400 mt-0.5">0%</p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2 text-center">
+                <div class="bg-slate-950/60 p-2.5 rounded-xl border border-slate-800/80">
+                    <p class="text-[10px] text-slate-400 font-bold">최고 점수</p>
+                    <p id="stat-best-score" class="text-sm font-black text-amber-400 mt-0.5">0</p>
+                </div>
+                <div class="bg-slate-950/60 p-2.5 rounded-xl border border-slate-800/80">
+                    <p class="text-[10px] text-slate-400 font-bold">최단 클리어 시간</p>
+                    <p id="stat-best-time" class="text-sm font-black text-indigo-300 mt-0.5">--:--</p>
+                </div>
+            </div>
+
+            <!-- Recent Records List -->
+            <div class="flex-1 overflow-y-auto pr-1 flex flex-col gap-2">
+                <p class="text-xs font-bold text-slate-300">최근 성공 기록</p>
+                <div id="records-list" class="flex flex-col gap-1.5 text-xs">
+                    <!-- History records populated dynamically -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Victory Modal -->
+    <div id="victory-modal" class="hidden fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 flex items-center justify-center p-4">
+        <div class="w-full max-w-sm bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl flex flex-col items-center text-center gap-4">
+            <div class="w-16 h-16 rounded-full bg-amber-500/20 border-2 border-amber-500 flex items-center justify-center text-amber-400 text-3xl animate-bounce">
+                🏆
+            </div>
+            <div>
+                <h2 class="text-2xl font-black text-white">퍼즐 클리어 성공!</h2>
+                <p id="victory-subtitle" class="text-xs text-slate-400 mt-1">완벽하게 퍼즐을 풀어냈습니다.</p>
+            </div>
+
+            <div class="w-full bg-slate-950 p-4 rounded-2xl border border-slate-800 flex flex-col gap-2 text-xs">
+                <div class="flex justify-between items-center">
+                    <span class="text-slate-400">최종 점수</span>
+                    <span id="vic-score" class="text-sm font-black text-amber-400">0</span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-slate-400">소요 시간</span>
+                    <span id="vic-time" class="font-bold text-white">00:00</span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-slate-400">실수 횟수</span>
+                    <span id="vic-mistakes" class="font-bold text-rose-400">0/3</span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-slate-400">달성 일시</span>
+                    <span id="vic-date" class="text-slate-300">2026.08.19 12:00</span>
+                </div>
+            </div>
+
+            <button onclick="closeVictoryAndRestart()" class="w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-2xl shadow-lg shadow-indigo-600/30 transition active:scale-95">
+                새 게임 시작하기
             </button>
         </div>
     </div>
 
     <script>
         // Game State Variables
-        let solutionBoard = [];
-        let initialBoard = [];
-        let currentBoard = [];
-        let notesGrid = []; // 9x9 Array of Sets
-        let historyStack = []; // For Undo feature
-
-        // Multi-selection state
-        let selectedCellsSet = new Set(); // Stores "r,c" strings
-        let selectedRow = -1;
-        let selectedCol = -1;
+        let board = Array(9).fill().map(() => Array(9).fill(0));
+        let solution = Array(9).fill().map(() => Array(9).fill(0));
+        let initialBoard = Array(9).fill().map(() => Array(9).fill(0));
+        let notes = Array(9).fill().map(() => Array(9).fill().map(() => new Set()));
+        let history = [];
+        
+        let selectedCells = new Set(); // Stores cell keys like 'r-c'
         let isPencilMode = false;
-        let isMouseDown = false;
-        let isMultiDrag = false;
-        let lastTouchTime = 0; // Debounce touch vs mouse double-fire
-
-        let currentDifficulty = 'medium';
-        let mistakeCount = 0;
-        const MAX_MISTAKES = 3;
-
-        // Score & Stats Logic
-        let currentScore = 0;
-        let hintsUsed = 0;
-        let streakCombo = 0;
-        let statsTabDifficulty = 'medium';
-
+        let difficulty = 'medium';
+        
+        let timer = 0;
         let timerInterval = null;
-        let secondsElapsed = 0;
         let isPaused = false;
+        
+        let score = 0;
+        let mistakes = 0;
+        let combo = 0;
+        let isMouseDown = false;
+        let activeStatsTab = 'medium';
 
-        // Base cell points by difficulty
-        const BASE_CELL_POINTS = {
-            easy: 50,
-            medium: 100,
-            hard: 150,
-            expert: 200
-        };
-
-        const DIFF_MULTIPLIER = {
-            easy: 1.0,
-            medium: 1.5,
-            hard: 2.0,
-            expert: 3.0
-        };
-
-        // Difficulty Settings (number of pre-filled clues out of 81)
-        const DIFFICULTY_PREFILL = {
-            easy: 42,
-            medium: 34,
-            hard: 28,
-            expert: 24
-        };
-
-        const DIFFICULTY_NAMES = {
-            easy: '쉬움',
-            medium: '보통',
-            hard: '어려움',
-            expert: '전문가'
-        };
-
-        // Local Storage Records Management
-        function getGameStats() {
+        // Web Audio API for feedback cues
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        function playSound(type) {
             try {
-                const data = localStorage.getItem('sudoku_master_stats');
-                return data ? JSON.parse(data) : createDefaultStats();
-            } catch (e) {
-                return createDefaultStats();
-            }
-        }
+                if (audioCtx.state === 'suspended') audioCtx.resume();
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
 
-        function createDefaultStats() {
-            return {
-                easy: { played: 0, cleared: 0, bestScore: 0, bestTime: null, records: [] },
-                medium: { played: 0, cleared: 0, bestScore: 0, bestTime: null, records: [] },
-                hard: { played: 0, cleared: 0, bestScore: 0, bestTime: null, records: [] },
-                expert: { played: 0, cleared: 0, bestScore: 0, bestTime: null, records: [] }
-            };
-        }
-
-        function saveGameStats(stats) {
-            try {
-                localStorage.setItem('sudoku_master_stats', JSON.stringify(stats));
+                if (type === 'error') {
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+                    gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+                    osc.start();
+                    osc.stop(audioCtx.currentTime + 0.2);
+                } else if (type === 'success') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(523.25, audioCtx.currentTime); // C5
+                    osc.frequency.setValueAtTime(659.25, audioCtx.currentTime + 0.08); // E5
+                    gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.25);
+                    osc.start();
+                    osc.stop(audioCtx.currentTime + 0.25);
+                }
             } catch (e) {}
         }
 
-        function recordGameStart(diff) {
-            const stats = getGameStats();
-            if (stats[diff]) {
-                stats[diff].played = (stats[diff].played || 0) + 1;
-                saveGameStats(stats);
-            }
-        }
-
-        function recordGameWin(diff, score, timeSec, mistakes) {
-            const stats = getGameStats();
-            if (!stats[diff]) stats[diff] = { played: 1, cleared: 0, bestScore: 0, bestTime: null, records: [] };
-
-            const diffStats = stats[diff];
-            diffStats.cleared = (diffStats.cleared || 0) + 1;
-
-            const isNewHighScore = score > (diffStats.bestScore || 0);
-            if (isNewHighScore) diffStats.bestScore = score;
-
-            if (diffStats.bestTime === null || timeSec < diffStats.bestTime) {
-                diffStats.bestTime = timeSec;
-            }
-
-            const now = new Date();
-            const dateStr = `${now.getFullYear()}.${String(now.getMonth()+1).padStart(2,'0')}.${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
-
-            const record = {
-                id: Date.now(),
-                date: dateStr,
-                score: score,
-                time: timeSec,
-                mistakes: mistakes
-            };
-
-            diffStats.records = [record, ...(diffStats.records || [])].slice(0, 15); // Keep top 15
-            saveGameStats(stats);
-
-            return isNewHighScore;
-        }
-
-        function formatTime(secs) {
-            if (secs === null || secs === undefined) return '--:--';
-            const m = Math.floor(secs / 60).toString().padStart(2, '0');
-            const s = (secs % 60).toString().padStart(2, '0');
-            return `${m}:${s}`;
-        }
-
-        function updateStatsUI(diff = statsTabDifficulty) {
-            statsTabDifficulty = diff;
-            const stats = getGameStats()[diff] || { played: 0, cleared: 0, bestScore: 0, bestTime: null, records: [] };
-
-            // Update Tab UI
-            document.querySelectorAll('.stats-tab-btn').forEach(btn => {
-                if (btn.dataset.statsDiff === diff) {
-                    btn.className = 'stats-tab-btn flex-1 py-1.5 text-xs font-bold rounded-lg bg-indigo-600 text-white shadow transition';
-                } else {
-                    btn.className = 'stats-tab-btn flex-1 py-1.5 text-xs font-semibold rounded-lg text-slate-400 hover:text-white transition';
-                }
-            });
-
-            // Update Badges
-            document.getElementById('stat-played').textContent = stats.played || 0;
-            document.getElementById('stat-cleared').textContent = stats.cleared || 0;
-            document.getElementById('stat-best-score').textContent = (stats.bestScore || 0).toLocaleString();
-            document.getElementById('stat-best-time').textContent = formatTime(stats.bestTime);
-
-            // Update Record List
-            const listContainer = document.getElementById('records-list-container');
-            listContainer.innerHTML = '';
-
-            if (!stats.records || stats.records.length === 0) {
-                listContainer.innerHTML = `
-                    <div class="p-6 text-center text-xs text-slate-500 bg-slate-800/30 rounded-2xl border border-slate-700/30">
-                        아직 성공 기록이 없습니다.<br>게임에서 승리하여 명예의 전당에 도전해보세요!
-                    </div>
-                `;
-                return;
-            }
-
-            stats.records.forEach((rec, idx) => {
-                const item = document.createElement('div');
-                item.className = 'flex items-center justify-between p-2.5 bg-slate-800/60 hover:bg-slate-800 rounded-xl border border-slate-700/50 text-xs transition';
-                
-                const rankBadge = idx === 0 
-                    ? '<span class="text-amber-400 font-bold mr-1">🥇</span>' 
-                    : (idx === 1 ? '<span class="text-slate-300 font-bold mr-1">🥈</span>' 
-                    : (idx === 2 ? '<span class="text-amber-600 font-bold mr-1">🥉</span>' : `<span class="text-slate-500 font-mono w-4 inline-block">${idx+1}.</span>`));
-
-                item.innerHTML = `
-                    <div class="flex items-center gap-2">
-                        ${rankBadge}
-                        <div>
-                            <div class="font-bold text-slate-200">${rec.score.toLocaleString()} 점</div>
-                            <div class="text-[10px] text-slate-400">${rec.date}</div>
-                        </div>
-                    </div>
-                    <div class="text-right">
-                        <div class="font-mono font-semibold text-indigo-300">${formatTime(rec.time)}</div>
-                        <div class="text-[10px] text-rose-400">실수 ${rec.mistakes}회</div>
-                    </div>
-                `;
-                listContainer.appendChild(item);
-            });
-        }
-
-        // Sound Audio Synthesizer Feedback for Invalid Input
-        function triggerErrorFeedback(cellElement) {
-            if (cellElement) {
-                cellElement.classList.add('animate-shake', 'ring-2', 'ring-rose-500');
-                setTimeout(() => {
-                    cellElement.classList.remove('animate-shake', 'ring-2', 'ring-rose-500');
-                }, 300);
-            }
-
-            try {
-                const ctx = new (window.AudioContext || window.webkitAudioContext)();
-                const osc = ctx.createOscillator();
-                const gain = ctx.createGain();
-                osc.type = 'sawtooth';
-                osc.frequency.setValueAtTime(160, ctx.currentTime);
-                gain.gain.setValueAtTime(0.15, ctx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2);
-                osc.connect(gain);
-                gain.connect(ctx.destination);
-                osc.start();
-                osc.stop(ctx.currentTime + 0.2);
-            } catch (e) {
-                // AudioContext fallback
-            }
-        }
-
-        function saveHistoryBatch(batch) {
-            if (batch && batch.length > 0) {
-                historyStack.push(batch);
-                if (historyStack.length > 50) historyStack.shift();
-            }
-        }
-
-        function clearRelatedNotes(r, c, val) {
-            for (let i = 0; i < 9; i++) {
-                notesGrid[r][i].delete(val);
-                notesGrid[i][c].delete(val);
-            }
-            const sr = Math.floor(r / 3) * 3;
-            const sc = Math.floor(c / 3) * 3;
-            for (let tr = 0; tr < 3; tr++) {
-                for (let tc = 0; tc < 3; tc++) {
-                    notesGrid[sr + tr][sc + tc].delete(val);
-                }
-            }
-        }
-
-        function eraseCell() {
-            if (selectedCellsSet.size === 0 || isPaused) return;
-            let changesMade = false;
-            const historyBatch = [];
-
-            selectedCellsSet.forEach(key => {
-                const [r, c] = key.split(',').map(Number);
-                if (initialBoard[r][c] !== 0) return;
-
-                const prevVal = currentBoard[r][c];
-                const prevNotes = new Set(notesGrid[r][c]);
-
-                if (prevVal !== 0 || prevNotes.size > 0) {
-                    currentBoard[r][c] = 0;
-                    notesGrid[r][c].clear();
-                    changesMade = true;
-                    historyBatch.push({
-                        r, c,
-                        oldVal: prevVal,
-                        newVal: 0,
-                        oldNotes: prevNotes,
-                        newNotes: new Set()
-                    });
-                }
-            });
-
-            if (changesMade) {
-                saveHistoryBatch(historyBatch);
-                updateGridUI();
-            }
-        }
-
-        function autoFillNotes() {
-            if (isPaused) return;
-
-            let hasAnyNotes = false;
+        // Sudoku Helper Solver (Count Solutions to Ensure 100% Unique Answer)
+        function solveSudoku(grid) {
             for (let r = 0; r < 9; r++) {
                 for (let c = 0; c < 9; c++) {
-                    if (notesGrid[r][c].size > 0) {
-                        hasAnyNotes = true;
-                        break;
-                    }
-                }
-                if (hasAnyNotes) break;
-            }
-
-            const historyBatch = [];
-
-            if (hasAnyNotes) {
-                for (let r = 0; r < 9; r++) {
-                    for (let c = 0; c < 9; c++) {
-                        if (notesGrid[r][c].size > 0) {
-                            const prevNotes = new Set(notesGrid[r][c]);
-                            notesGrid[r][c].clear();
-                            historyBatch.push({
-                                r, c,
-                                oldVal: currentBoard[r][c],
-                                newVal: currentBoard[r][c],
-                                oldNotes: prevNotes,
-                                newNotes: new Set()
-                            });
-                        }
-                    }
-                }
-            } else {
-                for (let r = 0; r < 9; r++) {
-                    for (let c = 0; c < 9; c++) {
-                        if (currentBoard[r][c] === 0) {
-                            const prevNotes = new Set(notesGrid[r][c]);
-                            const newNotes = new Set();
-                            for (let num = 1; num <= 9; num++) {
-                                if (isValidCandidate(r, c, num)) {
-                                    newNotes.add(num);
-                                }
-                            }
-                            notesGrid[r][c] = newNotes;
-                            historyBatch.push({
-                                r, c,
-                                oldVal: 0,
-                                newVal: 0,
-                                oldNotes: prevNotes,
-                                newNotes: new Set(newNotes)
-                            });
-                        }
-                    }
-                }
-            }
-
-            if (historyBatch.length > 0) {
-                saveHistoryBatch(historyBatch);
-                updateGridUI();
-            }
-        }
-
-        function isValidCandidate(r, c, num) {
-            for (let i = 0; i < 9; i++) {
-                if (currentBoard[r][i] === num) return false;
-                if (currentBoard[i][c] === num) return false;
-            }
-            const sr = Math.floor(r / 3) * 3;
-            const sc = Math.floor(c / 3) * 3;
-            for (let tr = 0; tr < 3; tr++) {
-                for (let tc = 0; tc < 3; tc++) {
-                    if (currentBoard[sr + tr][sc + tc] === num) return false;
-                }
-            }
-            return true;
-        }
-
-        function isValid(board, row, col, num) {
-            for (let i = 0; i < 9; i++) {
-                if (board[row][i] === num) return false;
-                if (board[i][col] === num) return false;
-            }
-            const startRow = Math.floor(row / 3) * 3;
-            const startCol = Math.floor(col / 3) * 3;
-            for (let r = 0; r < 3; r++) {
-                for (let c = 0; c < 3; c++) {
-                    if (board[startRow + r][startCol + c] === num) return false;
-                }
-            }
-            return true;
-        }
-
-        // 유일해 검증 알고리즘 (해가 2개 이상 발견되면 즉시 탐색 중단)
-        function countSolutions(board, limit = 2) {
-            let count = 0;
-            
-            function solve(b) {
-                let minCandidates = 10;
-                let bestR = -1, bestC = -1;
-                
-                for (let r = 0; r < 9; r++) {
-                    for (let c = 0; c < 9; c++) {
-                        if (b[r][c] === 0) {
-                            let candidates = 0;
-                            for (let n = 1; n <= 9; n++) {
-                                if (isValid(b, r, c, n)) candidates++;
-                            }
-                            if (candidates < minCandidates) {
-                                minCandidates = candidates;
-                                bestR = r;
-                                bestC = c;
-                            }
-                        }
-                    }
-                }
-                
-                if (bestR === -1) {
-                    count++;
-                    return;
-                }
-                
-                if (minCandidates === 0) return;
-                
-                for (let num = 1; num <= 9; num++) {
-                    if (isValid(b, bestR, bestC, num)) {
-                        b[bestR][bestC] = num;
-                        solve(b);
-                        b[bestR][bestC] = 0;
-                        if (count >= limit) return;
-                    }
-                }
-            }
-            
-            const boardCopy = board.map(row => [...row]);
-            solve(boardCopy);
-            return count;
-        }
-
-        function solveSudoku(board) {
-            for (let r = 0; r < 9; r++) {
-                for (let c = 0; c < 9; c++) {
-                    if (board[r][c] === 0) {
-                        const nums = [1, 2, 3, 4, 5, 6, 7, 8, 9].sort(() => Math.random() - 0.5);
+                    if (grid[r][c] === 0) {
+                        const nums = [1,2,3,4,5,6,7,8,9].sort(() => Math.random() - 0.5);
                         for (let num of nums) {
-                            if (isValid(board, r, c, num)) {
-                                board[r][c] = num;
-                                if (solveSudoku(board)) return true;
-                                board[r][c] = 0;
+                            if (isValid(grid, r, c, num)) {
+                                grid[r][c] = num;
+                                if (solveSudoku(grid)) return true;
+                                grid[r][c] = 0;
                             }
                         }
                         return false;
@@ -789,582 +384,645 @@
             return true;
         }
 
-        function generateSudoku(difficulty) {
-            const fullBoard = Array.from({ length: 9 }, () => Array(9).fill(0));
-            
-            for (let i = 0; i < 9; i += 3) {
-                const nums = [1, 2, 3, 4, 5, 6, 7, 8, 9].sort(() => Math.random() - 0.5);
-                let idx = 0;
-                for (let r = 0; r < 3; r++) {
-                    for (let c = 0; c < 3; c++) {
-                        fullBoard[i + r][i + c] = nums[idx++];
+        function countSolutions(grid, count = { val: 0 }) {
+            for (let r = 0; r < 9; r++) {
+                for (let c = 0; c < 9; c++) {
+                    if (grid[r][c] === 0) {
+                        for (let num = 1; num <= 9; num++) {
+                            if (isValid(grid, r, c, num)) {
+                                grid[r][c] = num;
+                                countSolutions(grid, count);
+                                grid[r][c] = 0;
+                                if (count.val >= 2) return count.val; // Early stop if multiple
+                            }
+                        }
+                        return count.val;
                     }
                 }
             }
+            count.val++;
+            return count.val;
+        }
 
-            solveSudoku(fullBoard);
-            solutionBoard = fullBoard.map(row => [...row]);
-
-            const puzzleBoard = fullBoard.map(row => [...row]);
-            const targetClues = DIFFICULTY_PREFILL[difficulty] || 34;
-
-            const positions = [];
-            for (let r = 0; r < 9; r++) {
-                for (let c = 0; c < 9; c++) {
-                    positions.push({ r, c });
+        function isValid(grid, r, c, num) {
+            for (let i = 0; i < 9; i++) {
+                if (grid[r][i] === num && i !== c) return false;
+                if (grid[i][c] === num && i !== r) return false;
+            }
+            const boxR = Math.floor(r / 3) * 3;
+            const boxC = Math.floor(c / 3) * 3;
+            for (let i = 0; i < 3; i++) {
+                for (let j = 0; j < 3; j++) {
+                    if (grid[boxR + i][boxC + j] === num && (boxR + i !== r || boxC + j !== c)) {
+                        return false;
+                    }
                 }
+            }
+            return true;
+        }
+
+        function generatePuzzle() {
+            // Fill complete board
+            solution = Array(9).fill().map(() => Array(9).fill(0));
+            solveSudoku(solution);
+
+            // Copy to working grid
+            board = solution.map(row => [...row]);
+
+            // Determine clues count based on difficulty
+            let clues = 45;
+            if (difficulty === 'easy') clues = 46;
+            if (difficulty === 'medium') clues = 36;
+            if (difficulty === 'hard') clues = 30;
+            if (difficulty === 'expert') clues = 25;
+
+            let removals = 81 - clues;
+            let positions = [];
+            for (let r = 0; r < 9; r++) {
+                for (let c = 0; c < 9; c++) positions.push([r, c]);
             }
             positions.sort(() => Math.random() - 0.5);
 
-            let cluesRemaining = 81;
-            for (let i = 0; i < positions.length; i++) {
-                if (cluesRemaining <= targetClues) break;
+            // Remove numbers ensuring single unique solution
+            for (let pos of positions) {
+                if (removals <= 0) break;
+                const [r, c] = pos;
+                const backup = board[r][c];
+                board[r][c] = 0;
 
-                const { r, c } = positions[i];
-                const temp = puzzleBoard[r][c];
-                puzzleBoard[r][c] = 0;
+                // Check unique solution
+                let testGrid = board.map(row => [...row]);
+                let count = { val: 0 };
+                countSolutions(testGrid, count);
 
-                if (countSolutions(puzzleBoard, 2) === 1) {
-                    cluesRemaining--;
+                if (count.val !== 1) {
+                    board[r][c] = backup; // Revert if multiple solutions
                 } else {
-                    puzzleBoard[r][c] = temp;
+                    removals--;
                 }
             }
 
-            initialBoard = puzzleBoard.map(row => [...row]);
-            currentBoard = puzzleBoard.map(row => [...row]);
-
-            notesGrid = Array.from({ length: 9 }, () =>
-                Array.from({ length: 9 }, () => new Set())
-            );
+            initialBoard = board.map(row => [...row]);
+            notes = Array(9).fill().map(() => Array(9).fill().map(() => new Set()));
+            history = [];
         }
 
-        function initGridDOM() {
-            const gridContainer = document.getElementById('sudoku-grid');
-            gridContainer.innerHTML = '';
+        // Render Sudoku Cells
+        function renderBoard() {
+            const gridEl = document.getElementById('sudoku-grid');
+            gridEl.innerHTML = '';
 
-            window.addEventListener('mouseup', () => { isMouseDown = false; isMultiDrag = false; });
-            window.addEventListener('touchend', () => { isMouseDown = false; isMultiDrag = false; });
+            let selectedVal = 0;
+            let primaryRow = -1, primaryCol = -1;
 
-            // Touch Drag multi-cell selection support
-            gridContainer.addEventListener('touchmove', (e) => {
-                if (!isMouseDown || !isMultiDrag) return;
-                const touch = e.touches[0];
-                const target = document.elementFromPoint(touch.clientX, touch.clientY);
-                if (target) {
-                    const cell = target.closest('.sudoku-cell');
-                    if (cell) {
-                        const r = parseInt(cell.dataset.row);
-                        const c = parseInt(cell.dataset.col);
-                        if (!isNaN(r) && !isNaN(c)) {
-                            addCellToSelection(r, c);
-                        }
-                    }
-                }
-            }, { passive: true });
+            if (selectedCells.size > 0) {
+                const firstKey = Array.from(selectedCells)[selectedCells.size - 1];
+                const [r, c] = firstKey.split('-').map(Number);
+                selectedVal = board[r][c];
+                primaryRow = r;
+                primaryCol = c;
+            }
 
             for (let r = 0; r < 9; r++) {
                 for (let c = 0; c < 9; c++) {
                     const cell = document.createElement('div');
-                    cell.dataset.row = r;
-                    cell.dataset.col = c;
+                    const cellId = `${r}-${c}`;
                     
-                    cell.className = `sudoku-cell flex items-center justify-center relative cursor-pointer border border-slate-700/60 font-extrabold text-lg sm:text-xl transition-all duration-100 select-none`;
-                    
-                    if (c === 2 || c === 5) cell.classList.add('border-r-thick', 'border-r-slate-400');
-                    if (r === 2 || r === 5) cell.classList.add('border-b-thick', 'border-b-slate-400');
+                    // Borders for 3x3 Grid
+                    let borderClasses = 'border border-slate-800 flex items-center justify-center relative cursor-pointer font-bold text-xl transition-all duration-150 ';
+                    if (c === 2 || c === 5) borderClasses += 'border-r-strong ';
+                    if (r === 2 || r === 5) borderClasses += 'border-b-strong ';
+                    cell.className = borderClasses;
+                    cell.dataset.id = cellId;
 
-                    // Mouse pointer events with touch debouncing
-                    cell.addEventListener('mousedown', (e) => {
-                        if (Date.now() - lastTouchTime < 400) return; // Prevent double-fire on touch devices
-                        isMouseDown = true;
-                        const isMultiKey = e.shiftKey || e.ctrlKey || e.metaKey;
-                        isMultiDrag = isMultiKey;
-                        handleCellPointerStart(r, c, isMultiKey);
-                    });
+                    const isSameRowOrCol = (r === primaryRow || c === primaryCol);
+                    const isSameSubgrid = (Math.floor(r / 3) === Math.floor(primaryRow / 3) && Math.floor(c / 3) === Math.floor(primaryCol / 3));
+                    const isCellSelected = selectedCells.has(cellId);
+                    const cellVal = board[r][c];
+                    const isSameValue = selectedVal !== 0 && cellVal === selectedVal;
 
-                    cell.addEventListener('mouseenter', (e) => {
-                        if (isMouseDown && (isMultiDrag || e.shiftKey || e.ctrlKey || e.metaKey)) {
-                            addCellToSelection(r, c);
+                    // High Contrast Highlighting System (Pure CSS for guaranteed mobile rendering)
+                    cell.classList.remove('cell-selected', 'cell-same-value', 'cell-highlight-area', 'cell-base');
+
+                    if (isCellSelected) {
+                        cell.classList.add('cell-selected');
+                    } else if (isSameValue) {
+                        cell.classList.add('cell-same-value');
+                    } else if (primaryRow !== -1 && (isSameRowOrCol || isSameSubgrid)) {
+                        cell.classList.add('cell-highlight-area');
+                    } else {
+                        cell.classList.add('cell-base');
+                    }
+
+                    // Value Rendering or Pencil Notes
+                    if (cellVal !== 0) {
+                        const valSpan = document.createElement('span');
+                        valSpan.textContent = cellVal;
+                        if (initialBoard[r][c] !== 0) {
+                            valSpan.className = 'font-black text-slate-100';
+                        } else {
+                            valSpan.className = 'font-bold text-indigo-400';
                         }
-                    });
+                        cell.appendChild(valSpan);
+                    } else {
+                        // Render Pencil Candidates
+                        const cellNotes = notes[r][c];
+                        if (cellNotes.size > 0) {
+                            const noteGrid = document.createElement('div');
+                            noteGrid.className = 'grid grid-cols-3 grid-rows-3 w-full h-full p-0.5 text-[9px] text-slate-400 leading-none text-center items-center';
+                            for (let n = 1; n <= 9; n++) {
+                                const noteItem = document.createElement('div');
+                                if (cellNotes.has(n)) {
+                                    noteItem.textContent = n;
+                                    // Highlight matching pencil note when value is selected
+                                    if (selectedVal === n && (isSameRowOrCol || isSameSubgrid)) {
+                                        noteItem.classList.add('note-highlight');
+                                    }
+                                }
+                                noteGrid.appendChild(noteItem);
+                            }
+                            cell.appendChild(noteGrid);
+                        }
+                    }
 
-                    cell.addEventListener('touchstart', (e) => {
-                        lastTouchTime = Date.now();
-                        isMouseDown = true;
-                        const isMultiKey = e.shiftKey || e.ctrlKey || e.metaKey;
-                        isMultiDrag = isMultiKey;
-                        handleCellPointerStart(r, c, isMultiKey);
-                    }, { passive: true });
+                    // Mouse & Touch Selection Event Listeners
+                    cell.addEventListener('mousedown', (e) => handleCellSelectStart(r, c, e));
+                    cell.addEventListener('mouseenter', (e) => handleCellSelectHover(r, c, e));
 
-                    gridContainer.appendChild(cell);
+                    gridEl.appendChild(cell);
                 }
             }
+
+            updateRemainingCounts();
         }
 
-        function handleCellPointerStart(r, c, isMultiKey) {
-            if (isMultiKey) {
-                const key = `${r},${c}`;
-                if (selectedCellsSet.has(key) && selectedCellsSet.size > 1) {
-                    selectedCellsSet.delete(key);
-                } else {
-                    selectedCellsSet.add(key);
-                }
+        function handleCellSelectStart(r, c, e) {
+            isMouseDown = true;
+            const key = `${r}-${c}`;
+
+            if (e && (e.ctrlKey || e.metaKey)) {
+                // Ctrl / Cmd Click: Toggle Selection
+                if (selectedCells.has(key)) selectedCells.delete(key);
+                else selectedCells.add(key);
+            } else if (e && e.shiftKey) {
+                // Shift Click: Add to Selection
+                selectedCells.add(key);
             } else {
-                selectedCellsSet.clear();
-                selectedCellsSet.add(`${r},${c}`);
+                // Default Single Click Selection
+                selectedCells.clear();
+                selectedCells.add(key);
             }
-            selectedRow = r;
-            selectedCol = c;
-            updateGridUI();
+            renderBoard();
         }
 
-        function addCellToSelection(r, c) {
-            selectedCellsSet.add(`${r},${c}`);
-            selectedRow = r;
-            selectedCol = c;
-            updateGridUI();
-        }
-
-        function updateGridUI() {
-            const cells = document.querySelectorAll('.sudoku-cell');
-            const selectedVal = (selectedRow !== -1 && selectedCol !== -1) ? currentBoard[selectedRow][selectedCol] : 0;
-
-            cells.forEach(cell => {
-                const r = parseInt(cell.dataset.row);
-                const c = parseInt(cell.dataset.col);
-                const val = currentBoard[r][c];
-                const isInitial = initialBoard[r][c] !== 0;
-                const cellKey = `${r},${c}`;
-
-                cell.innerHTML = '';
-                cell.className = `sudoku-cell flex items-center justify-center relative cursor-pointer border border-slate-700/60 font-extrabold text-lg sm:text-2xl transition-all duration-100`;
-
-                if (c === 2 || c === 5) cell.classList.add('border-r-thick', 'border-r-slate-400');
-                if (r === 2 || r === 5) cell.classList.add('border-b-thick', 'border-b-slate-400');
-
-                const isCellSelected = selectedCellsSet.has(cellKey);
-                const isSameRowOrCol = (r === selectedRow || c === selectedCol);
-                const isSameSubgrid = (Math.floor(r/3) === Math.floor(selectedRow/3) && Math.floor(c/3) === Math.floor(selectedCol/3));
-                const isSameValue = (selectedVal !== 0 && val === selectedVal);
-
-                // HIGH CONTRAST HIGHLIGHTING SYSTEM (Mobile OLED & PC Optimized)
-                if (isCellSelected) {
-                    // Selected active cell
-                    cell.classList.add('bg-indigo-600', 'text-white', 'shadow-lg', 'ring-4', 'ring-indigo-300', 'z-20', 'scale-[1.02]');
-                } else if (isSameValue) {
-                    // Glowing Highlight for cells matching selected number
-                    cell.classList.add('bg-indigo-800', 'text-amber-300', 'ring-2', 'ring-indigo-400/80', 'font-black', 'z-10');
-                } else if (isSameRowOrCol || isSameSubgrid) {
-                    // Bright high-contrast crosshair highlight (Medium Slate Gray)
-                    cell.classList.add('bg-slate-700', 'text-white', 'border-indigo-400/40');
-                } else {
-                    // Unselected base cell
-                    cell.classList.add('bg-slate-900', 'text-slate-300');
-                }
-
-                const isRelatedArea = (isSameRowOrCol || isSameSubgrid);
-
-                // Render Cell Content
-                if (val !== 0) {
-                    cell.textContent = val;
-                    if (isInitial) {
-                        cell.classList.add('font-black');
-                        if (!isSameValue && !isCellSelected) cell.classList.add('text-slate-100');
-                    } else {
-                        // User filled
-                        if (val === solutionBoard[r][c]) {
-                            if (!isCellSelected && !isSameValue) cell.classList.add('text-indigo-400');
-                        } else {
-                            // Incorrect number
-                            cell.classList.add('text-rose-400', 'bg-rose-950/80', 'ring-2', 'ring-rose-500');
-                        }
-                    }
-                } else if (notesGrid[r][c].size > 0) {
-                    // Render Notes / Pencil Marks
-                    const notesContainer = document.createElement('div');
-                    notesContainer.className = 'notes-grid p-0.5 text-slate-400';
-                    
-                    for (let n = 1; n <= 9; n++) {
-                        const noteNum = document.createElement('div');
-                        const isNotePresent = notesGrid[r][c].has(n);
-                        const isMatchingNoteToSelectedVal = (selectedVal !== 0 && isNotePresent && n === selectedVal && isRelatedArea);
-
-                        if (isMatchingNoteToSelectedVal) {
-                            noteNum.className = 'flex items-center justify-center font-bold text-[11px] text-amber-300 bg-amber-500/40 rounded-full scale-110 shadow-sm border border-amber-300 animate-pulse';
-                        } else {
-                            noteNum.className = 'flex items-center justify-center font-semibold text-[10px] text-amber-300/80';
-                        }
-
-                        noteNum.textContent = isNotePresent ? n : '';
-                        notesContainer.appendChild(noteNum);
-                    }
-                    cell.appendChild(notesContainer);
-                }
-            });
-
-            updateNumpadCounts();
-        }
-
-        function updateNumpadCounts() {
-            const counts = {1:0, 2:0, 3:0, 4:0, 5:0, 6:0, 7:0, 8:0, 9:0};
-            for (let r = 0; r < 9; r++) {
-                for (let c = 0; c < 9; c++) {
-                    const val = currentBoard[r][c];
-                    if (val >= 1 && val <= 9 && val === solutionBoard[r][c]) {
-                        counts[val]++;
-                    }
-                }
-            }
-
-            for (let num = 1; num <= 9; num++) {
-                const remaining = Math.max(0, 9 - counts[num]);
-                const countBadge = document.querySelector(`.num-count[data-count-num="${num}"]`);
-                if (countBadge) {
-                    countBadge.textContent = remaining;
-                    if (remaining === 0) {
-                        countBadge.className = 'num-count text-[10px] sm:text-xs text-emerald-400 font-bold mt-0.5 leading-none';
-                    } else {
-                        countBadge.className = 'num-count text-[10px] sm:text-xs text-slate-400 font-medium mt-0.5 leading-none';
-                    }
-                }
+        function handleCellSelectHover(r, c, e) {
+            if (isMouseDown && (e.shiftKey || isPencilMode)) {
+                selectedCells.add(`${r}-${c}`);
+                renderBoard();
             }
         }
 
-        function selectCell(r, c) {
-            selectedCellsSet.clear();
-            selectedCellsSet.add(`${r},${c}`);
-            selectedRow = r;
-            selectedCol = c;
-            updateGridUI();
-        }
+        window.addEventListener('mouseup', () => { isMouseDown = false; });
 
-        function handleInput(num) {
-            if (selectedCellsSet.size === 0 || isPaused) return;
+        // Touch Drag Multi-selection Support
+        document.getElementById('sudoku-grid').addEventListener('touchmove', (e) => {
+            if (e.touches.length > 0) {
+                const touch = e.touches[0];
+                const target = document.elementFromPoint(touch.clientX, touch.clientY);
+                if (target && target.dataset && target.dataset.id) {
+                    if (isPencilMode) {
+                        selectedCells.add(target.dataset.id);
+                        renderBoard();
+                    }
+                }
+            }
+        }, { passive: true });
 
-            let changesMade = false;
-            const historyBatch = [];
+        function inputNumber(num) {
+            if (selectedCells.size === 0 || isPaused) return;
+
+            saveHistory();
 
             if (isPencilMode) {
-                selectedCellsSet.forEach(key => {
-                    const [r, c] = key.split(',').map(Number);
-                    if (initialBoard[r][c] !== 0 || currentBoard[r][c] !== 0) return;
-
-                    const prevNotes = new Set(notesGrid[r][c]);
-
-                    if (!isValidCandidate(r, c, num)) {
-                        const cellElem = document.querySelector(`.sudoku-cell[data-row="${r}"][data-col="${c}"]`);
-                        triggerErrorFeedback(cellElem);
-                        return;
-                    }
-
-                    if (notesGrid[r][c].has(num)) {
-                        notesGrid[r][c].delete(num);
-                    } else {
-                        notesGrid[r][c].add(num);
-                    }
-
-                    changesMade = true;
-                    historyBatch.push({ r, c, oldVal: 0, newVal: 0, oldNotes: prevNotes, newNotes: new Set(notesGrid[r][c]) });
-                });
-
-            } else {
-                if (selectedRow === -1 || selectedCol === -1) return;
-                if (initialBoard[selectedRow][selectedCol] !== 0) return;
-
-                const prevVal = currentBoard[selectedRow][selectedCol];
-                const prevNotes = new Set(notesGrid[selectedRow][selectedCol]);
-
-                if (currentBoard[selectedRow][selectedCol] === num) {
-                    currentBoard[selectedRow][selectedCol] = 0;
-                } else {
-                    currentBoard[selectedRow][selectedCol] = num;
-                    notesGrid[selectedRow][selectedCol].clear();
-
-                    if (num !== solutionBoard[selectedRow][selectedCol]) {
-                        mistakeCount++;
-                        streakCombo = 0;
-                        currentScore = Math.max(0, currentScore - 300);
-                        document.getElementById('mistake-count').textContent = mistakeCount;
-                        document.getElementById('score-display').textContent = currentScore.toLocaleString();
-                        
-                        if (mistakeCount >= MAX_MISTAKES) {
-                            endGame(false);
-                            return;
+                // Pencil Mode: Process Selected Cells
+                let anyAdded = false;
+                selectedCells.forEach(key => {
+                    const [r, c] = key.split('-').map(Number);
+                    if (board[r][c] === 0) {
+                        // Check if candidate is valid
+                        if (isValid(board, r, c, num)) {
+                            if (notes[r][c].has(num)) {
+                                notes[r][c].delete(num);
+                            } else {
+                                notes[r][c].add(num);
+                            }
+                            anyAdded = true;
+                        } else {
+                            // Invalid Candidate Warning Animation
+                            const cellEl = document.querySelector(`[data-id="${key}"]`);
+                            if (cellEl) {
+                                cellEl.classList.add('animate-shake');
+                                setTimeout(() => cellEl.classList.remove('animate-shake'), 300);
+                            }
+                            playSound('error');
                         }
-                    } else {
-                        streakCombo++;
-                        const basePts = BASE_CELL_POINTS[currentDifficulty] || 100;
-                        const comboBonus = (streakCombo > 1) ? (streakCombo * 20) : 0;
-                        currentScore += (basePts + comboBonus);
-                        document.getElementById('score-display').textContent = currentScore.toLocaleString();
-
-                        clearRelatedNotes(selectedRow, selectedCol, num);
                     }
+                });
+                renderBoard();
+                return;
+            }
+
+            // Normal Mode: Single Input
+            const lastKey = Array.from(selectedCells)[selectedCells.size - 1];
+            const [r, c] = lastKey.split('-').map(Number);
+
+            if (initialBoard[r][c] !== 0) return; // Clue cell cannot be edited
+
+            if (solution[r][c] === num) {
+                // Correct Number
+                board[r][c] = num;
+                notes[r][c].clear();
+                clearRelatedNotes(r, c, num);
+
+                combo++;
+                let addScore = 100 * combo;
+                score += addScore;
+                document.getElementById('score-val').textContent = score.toLocaleString();
+
+                if (combo > 1) {
+                    const badge = document.getElementById('combo-badge');
+                    badge.textContent = `${combo}x COMBO`;
+                    badge.classList.remove('hidden');
                 }
 
-                changesMade = true;
-                historyBatch.push({ r: selectedRow, c: selectedCol, oldVal: prevVal, newVal: currentBoard[selectedRow][selectedCol], oldNotes: prevNotes, newNotes: new Set(notesGrid[selectedRow][selectedCol]) });
+                playSound('success');
+                checkVictory();
+            } else {
+                // Incorrect Number
+                mistakes++;
+                combo = 0;
+                document.getElementById('combo-badge').classList.add('hidden');
+                document.getElementById('mistake-count').textContent = mistakes;
+
+                score = Math.max(0, score - 300);
+                document.getElementById('score-val').textContent = score.toLocaleString();
+
+                const cellEl = document.querySelector(`[data-id="${lastKey}"]`);
+                if (cellEl) {
+                    cellEl.classList.add('animate-shake');
+                    setTimeout(() => cellEl.classList.remove('animate-shake'), 300);
+                }
+                playSound('error');
+
+                if (mistakes >= 3) {
+                    setTimeout(() => alert('실수 횟수 3회를 초과하였습니다. 다시 도전해보세요!'), 100);
+                    startNewGame();
+                    return;
+                }
+            }
+            renderBoard();
+        }
+
+        function clearRelatedNotes(r, c, num) {
+            for (let i = 0; i < 9; i++) {
+                notes[r][i].delete(num);
+                notes[i][c].delete(num);
+            }
+            const boxR = Math.floor(r / 3) * 3;
+            const boxC = Math.floor(c / 3) * 3;
+            for (let i = 0; i < 3; i++) {
+                for (let j = 0; j < 3; j++) {
+                    notes[boxR + i][boxC + j].delete(num);
+                }
+            }
+        }
+
+        function togglePencilMode() {
+            isPencilMode = !isPencilMode;
+            const badge = document.getElementById('pencil-badge');
+            const btn = document.getElementById('pencil-btn');
+
+            if (isPencilMode) {
+                badge.textContent = 'ON';
+                badge.className = 'absolute top-1 right-1.5 px-1 py-0.2 text-[8px] font-black rounded bg-amber-500 text-slate-950';
+                btn.classList.add('border-amber-500/50', 'bg-amber-500/10');
+            } else {
+                badge.textContent = 'OFF';
+                badge.className = 'absolute top-1 right-1.5 px-1 py-0.2 text-[8px] font-black rounded bg-slate-700 text-slate-400';
+                btn.classList.remove('border-amber-500/50', 'bg-amber-500/10');
+            }
+        }
+
+        function autoFillNotes() {
+            saveHistory();
+            let hasAnyNotes = false;
+
+            for (let r = 0; r < 9; r++) {
+                for (let c = 0; c < 9; c++) {
+                    if (board[r][c] === 0 && notes[r][c].size > 0) {
+                        hasAnyNotes = true;
+                        break;
+                    }
+                }
             }
 
-            if (changesMade) {
-                saveHistoryBatch(historyBatch);
+            if (hasAnyNotes) {
+                // Clear all notes toggle
+                for (let r = 0; r < 9; r++) {
+                    for (let c = 0; c < 9; c++) notes[r][c].clear();
+                }
+            } else {
+                // Fill candidates
+                for (let r = 0; r < 9; r++) {
+                    for (let c = 0; c < 9; c++) {
+                        if (board[r][c] === 0) {
+                            notes[r][c].clear();
+                            for (let num = 1; num <= 9; num++) {
+                                if (isValid(board, r, c, num)) {
+                                    notes[r][c].add(num);
+                                }
+                            }
+                        }
+                    }
+                }
             }
+            renderBoard();
+        }
 
-            updateGridUI();
+        function eraseCell() {
+            if (selectedCells.size === 0) return;
+            saveHistory();
+
+            selectedCells.forEach(key => {
+                const [r, c] = key.split('-').map(Number);
+                if (initialBoard[r][c] === 0) {
+                    board[r][c] = 0;
+                    notes[r][c].clear();
+                }
+            });
+            renderBoard();
+        }
+
+        function useHint() {
+            if (selectedCells.size === 0) return;
+            const lastKey = Array.from(selectedCells)[selectedCells.size - 1];
+            const [r, c] = lastKey.split('-').map(Number);
+
+            if (board[r][c] !== 0) return;
+
+            saveHistory();
+            board[r][c] = solution[r][c];
+            notes[r][c].clear();
+            clearRelatedNotes(r, c, solution[r][c]);
+
+            score = Math.max(0, score - 200);
+            document.getElementById('score-val').textContent = score.toLocaleString();
+
+            renderBoard();
             checkVictory();
         }
 
-        function giveHint() {
-            if (selectedRow === -1 || selectedCol === -1 || isPaused) return;
-            if (initialBoard[selectedRow][selectedCol] !== 0) return;
-
-            hintsUsed++;
-            currentScore = Math.max(0, currentScore - 200);
-            document.getElementById('score-display').textContent = currentScore.toLocaleString();
-
-            const correctNum = solutionBoard[selectedRow][selectedCol];
-            const prevVal = currentBoard[selectedRow][selectedCol];
-            const prevNotes = new Set(notesGrid[selectedRow][selectedCol]);
-
-            currentBoard[selectedRow][selectedCol] = correctNum;
-            notesGrid[selectedRow][selectedCol].clear();
-            clearRelatedNotes(selectedRow, selectedCol, correctNum);
-
-            saveHistoryBatch([{ r: selectedRow, c: selectedCol, oldVal: prevVal, newVal: correctNum, oldNotes: prevNotes, newNotes: new Set() }]);
-            updateGridUI();
-            checkVictory();
+        function saveHistory() {
+            history.push({
+                board: board.map(r => [...r]),
+                notes: notes.map(r => r.map(c => new Set(c))),
+                score,
+                combo
+            });
+            if (history.length > 20) history.shift();
         }
 
         function undo() {
-            if (historyStack.length === 0 || isPaused) return;
+            if (history.length === 0) return;
+            const lastState = history.pop();
+            board = lastState.board;
+            notes = lastState.notes;
+            score = lastState.score;
+            combo = lastState.combo;
+            document.getElementById('score-val').textContent = score.toLocaleString();
+            renderBoard();
+        }
 
-            const lastBatch = historyStack.pop();
-            lastBatch.forEach(action => {
-                const { r, c, oldVal, oldNotes } = action;
-                currentBoard[r][c] = oldVal;
-                notesGrid[r][c] = new Set(oldNotes);
-            });
-
-            updateGridUI();
+        function updateRemainingCounts() {
+            const counts = Array(10).fill(9);
+            for (let r = 0; r < 9; r++) {
+                for (let c = 0; c < 9; c++) {
+                    if (board[r][c] !== 0) {
+                        counts[board[r][c]]--;
+                    }
+                }
+            }
+            for (let i = 1; i <= 9; i++) {
+                const countEl = document.getElementById(`count-${i}`);
+                if (countEl) {
+                    countEl.textContent = counts[i];
+                    countEl.className = counts[i] === 0 ? 'text-[10px] font-bold text-slate-700' : 'text-[10px] font-bold text-slate-400 mt-0.5';
+                }
+            }
         }
 
         function startTimer() {
             clearInterval(timerInterval);
-            secondsElapsed = 0;
-            updateTimerDisplay();
-
+            timer = 0;
             timerInterval = setInterval(() => {
                 if (!isPaused) {
-                    secondsElapsed++;
-                    updateTimerDisplay();
+                    timer++;
+                    const mins = Math.floor(timer / 60).toString().padStart(2, '0');
+                    const secs = (timer % 60).toString().padStart(2, '0');
+                    document.getElementById('timer-display').textContent = `${mins}:${secs}`;
                 }
             }, 1000);
         }
 
-        function updateTimerDisplay() {
-            const mins = Math.floor(secondsElapsed / 60).toString().padStart(2, '0');
-            const secs = (secondsElapsed % 60).toString().padStart(2, '0');
-            document.getElementById('timer-display').textContent = `${mins}:${secs}`;
+        function togglePause() {
+            isPaused = !isPaused;
+            const overlay = document.getElementById('pause-overlay');
+            const icon = document.getElementById('pause-icon');
+
+            if (isPaused) {
+                overlay.classList.remove('hidden');
+                icon.className = 'fa-solid fa-play text-lg text-emerald-400';
+            } else {
+                overlay.classList.add('hidden');
+                icon.className = 'fa-solid fa-pause text-lg';
+            }
+        }
+
+        function confirmRestart() {
+            if (confirm('새로운 게임을 시작하시겠습니까? 현재 진행 상황은 초기화됩니다.')) {
+                startNewGame();
+            }
+        }
+
+        function setDifficulty(diff) {
+            difficulty = diff;
+            document.querySelectorAll('.diff-btn').forEach(btn => {
+                btn.className = 'diff-btn py-2 text-xs font-bold rounded-xl transition text-slate-400 hover:text-white';
+            });
+            const activeBtn = document.getElementById(`diff-${diff}`);
+            if (activeBtn) {
+                activeBtn.className = 'diff-btn py-2 text-xs font-bold rounded-xl transition bg-indigo-600 text-white shadow-md shadow-indigo-600/30';
+            }
+            startNewGame();
+        }
+
+        function startNewGame() {
+            score = 0;
+            mistakes = 0;
+            combo = 0;
+            selectedCells.clear();
+            document.getElementById('score-val').textContent = '0';
+            document.getElementById('mistake-count').textContent = '0';
+            document.getElementById('combo-badge').classList.add('hidden');
+
+            generatePuzzle();
+            renderBoard();
+            startTimer();
+
+            // Track played count
+            saveStatPlayed(difficulty);
         }
 
         function checkVictory() {
             for (let r = 0; r < 9; r++) {
                 for (let c = 0; c < 9; c++) {
-                    if (currentBoard[r][c] !== solutionBoard[r][c]) {
-                        return false;
-                    }
+                    if (board[r][c] !== solution[r][c]) return;
                 }
             }
-            endGame(true);
-        }
 
-        function endGame(isWin) {
             clearInterval(timerInterval);
+            saveStatVictory(difficulty, score, timer, mistakes);
 
-            if (isWin) {
-                const targetTime = 900;
-                const timeDiff = Math.max(0, targetTime - secondsElapsed);
-                const timeBonus = Math.round(timeDiff * 2 * (DIFF_MULTIPLIER[currentDifficulty] || 1));
-                
-                const finalScore = currentScore + timeBonus;
-                const isNewBest = recordGameWin(currentDifficulty, finalScore, secondsElapsed, mistakeCount);
+            const mins = Math.floor(timer / 60).toString().padStart(2, '0');
+            const secs = (timer % 60).toString().padStart(2, '0');
+            document.getElementById('vic-score').textContent = score.toLocaleString();
+            document.getElementById('vic-time').textContent = `${mins}:${secs}`;
+            document.getElementById('vic-mistakes').textContent = `${mistakes}/3`;
 
-                confetti({
-                    particleCount: 120,
-                    spread: 70,
-                    origin: { y: 0.6 }
-                });
+            const now = new Date();
+            const dateStr = `${now.getFullYear()}.${(now.getMonth()+1).toString().padStart(2,'0')}.${now.getDate().toString().padStart(2,'0')} ${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`;
+            document.getElementById('vic-date').textContent = dateStr;
 
-                document.getElementById('win-diff').textContent = DIFFICULTY_NAMES[currentDifficulty];
-                document.getElementById('win-time').textContent = document.getElementById('timer-display').textContent;
-                document.getElementById('win-mistakes').textContent = `${mistakeCount}회`;
-                document.getElementById('win-score').textContent = `${finalScore.toLocaleString()} 점`;
-
-                const badgeElem = document.getElementById('new-record-badge');
-                if (isNewBest) {
-                    badgeElem.classList.remove('hidden');
-                } else {
-                    badgeElem.classList.add('hidden');
-                }
-
-                document.getElementById('win-modal').classList.remove('hidden');
-            } else {
-                document.getElementById('gameover-modal').classList.remove('hidden');
-            }
+            document.getElementById('victory-modal').classList.remove('hidden');
         }
 
-        function startNewGame(difficulty = currentDifficulty) {
-            currentDifficulty = difficulty;
-            mistakeCount = 0;
-            currentScore = 0;
-            hintsUsed = 0;
-            streakCombo = 0;
-
-            historyStack = [];
-            selectedCellsSet.clear();
-            selectedRow = -1;
-            selectedCol = -1;
-            isPaused = false;
-
-            document.getElementById('mistake-count').textContent = mistakeCount;
-            document.getElementById('score-display').textContent = '0';
-
-            document.getElementById('pause-overlay').classList.add('hidden');
-            document.getElementById('win-modal').classList.add('hidden');
-            document.getElementById('gameover-modal').classList.add('hidden');
-
-            document.querySelectorAll('.diff-btn').forEach(btn => {
-                if (btn.dataset.diff === difficulty) {
-                    btn.className = 'diff-btn flex-1 py-2 text-xs sm:text-sm font-bold rounded-xl bg-indigo-600 text-white shadow transition duration-200';
-                } else {
-                    btn.className = 'diff-btn flex-1 py-2 text-xs sm:text-sm font-semibold rounded-xl text-slate-400 hover:text-white transition duration-200';
-                }
-            });
-
-            generateSudoku(difficulty);
-            recordGameStart(difficulty);
-            initGridDOM();
-            updateGridUI();
-            startTimer();
+        function closeVictoryAndRestart() {
+            document.getElementById('victory-modal').classList.add('hidden');
+            startNewGame();
         }
 
-        document.addEventListener('DOMContentLoaded', () => {
-            startNewGame('medium');
+        // Stats Storage Logic
+        function getStatsData() {
+            const data = localStorage.getItem('sudoku_stats');
+            return data ? JSON.parse(data) : {
+                easy: { played: 0, won: 0, bestScore: 0, bestTime: null, records: [] },
+                medium: { played: 0, won: 0, bestScore: 0, bestTime: null, records: [] },
+                hard: { played: 0, won: 0, bestScore: 0, bestTime: null, records: [] },
+                expert: { played: 0, won: 0, bestScore: 0, bestTime: null, records: [] }
+            };
+        }
 
-            document.querySelectorAll('.diff-btn').forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    startNewGame(e.target.dataset.diff);
-                });
-            });
+        function saveStatPlayed(diff) {
+            const stats = getStatsData();
+            stats[diff].played++;
+            localStorage.setItem('sudoku_stats', JSON.stringify(stats));
+        }
 
-            document.querySelectorAll('.num-btn').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    const num = parseInt(btn.dataset.num);
-                    handleInput(num);
-                });
-            });
+        function saveStatVictory(diff, sc, tm, mst) {
+            const stats = getStatsData();
+            const curr = stats[diff];
+            curr.won++;
+            if (sc > curr.bestScore) curr.bestScore = sc;
+            if (curr.bestTime === null || tm < curr.bestTime) curr.bestTime = tm;
 
-            const statsModal = document.getElementById('stats-modal');
-            document.getElementById('stats-btn').addEventListener('click', () => {
-                updateStatsUI(currentDifficulty);
-                statsModal.classList.remove('hidden');
-            });
-            document.getElementById('close-stats-btn').addEventListener('click', () => {
-                statsModal.classList.add('hidden');
-            });
-            document.getElementById('modal-stats-view-btn').addEventListener('click', () => {
-                document.getElementById('win-modal').classList.add('hidden');
-                updateStatsUI(currentDifficulty);
-                statsModal.classList.remove('hidden');
-            });
+            const now = new Date();
+            const dateStr = `${now.getFullYear()}.${(now.getMonth()+1).toString().padStart(2,'0')}.${now.getDate().toString().padStart(2,'0')} ${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`;
 
-            document.querySelectorAll('.stats-tab-btn').forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    updateStatsUI(e.target.dataset.statsDiff);
-                });
+            curr.records.unshift({
+                score: sc,
+                time: tm,
+                mistakes: mst,
+                date: dateStr
             });
+            if (curr.records.length > 10) curr.records.pop();
 
-            document.getElementById('reset-stats-btn').addEventListener('click', () => {
-                const stats = getGameStats();
-                if (stats[statsTabDifficulty]) {
-                    stats[statsTabDifficulty] = { played: 0, cleared: 0, bestScore: 0, bestTime: null, records: [] };
-                    saveGameStats(stats);
-                    updateStatsUI(statsTabDifficulty);
-                }
+            localStorage.setItem('sudoku_stats', JSON.stringify(stats));
+        }
+
+        function openStatsModal() {
+            switchStatsTab(difficulty);
+            document.getElementById('stats-modal').classList.remove('hidden');
+        }
+
+        function closeStatsModal() {
+            document.getElementById('stats-modal').classList.add('hidden');
+        }
+
+        function switchStatsTab(diff) {
+            activeStatsTab = diff;
+            document.querySelectorAll('.stats-tab').forEach(btn => {
+                btn.className = 'stats-tab py-1.5 rounded-lg text-slate-400';
             });
+            const activeBtn = document.getElementById(`tab-${diff}`);
+            if (activeBtn) activeBtn.className = 'stats-tab py-1.5 rounded-lg bg-indigo-600 text-white';
 
-            document.getElementById('undo-btn').addEventListener('click', undo);
-            document.getElementById('erase-btn').addEventListener('click', eraseCell);
-            document.getElementById('auto-notes-btn').addEventListener('click', autoFillNotes);
-            document.getElementById('hint-btn').addEventListener('click', giveHint);
-
-            const pencilBtn = document.getElementById('pencil-btn');
-            const pencilBadge = document.getElementById('pencil-badge');
+            const stats = getStatsData()[diff];
+            document.getElementById('stat-played').textContent = stats.played;
+            document.getElementById('stat-won').textContent = stats.won;
             
-            pencilBtn.addEventListener('click', () => {
-                isPencilMode = !isPencilMode;
-                if (isPencilMode) {
-                    pencilBadge.textContent = 'ON';
-                    pencilBadge.className = 'absolute top-1 right-1 sm:top-1.5 sm:right-1.5 px-1 py-0.2 text-[8px] sm:text-[9px] bg-amber-500 text-slate-950 rounded-full font-bold uppercase';
-                    pencilBtn.classList.add('border-amber-400', 'bg-slate-700');
-                } else {
-                    pencilBadge.textContent = 'OFF';
-                    pencilBadge.className = 'absolute top-1 right-1 sm:top-1.5 sm:right-1.5 px-1 py-0.2 text-[8px] sm:text-[9px] bg-slate-600 text-slate-300 rounded-full font-bold uppercase';
-                    pencilBtn.classList.remove('border-amber-400', 'bg-slate-700');
-                }
-            });
+            const winrate = stats.played > 0 ? Math.round((stats.won / stats.played) * 100) : 0;
+            document.getElementById('stat-winrate').textContent = `${winrate}%`;
+            document.getElementById('stat-best-score').textContent = stats.bestScore.toLocaleString();
 
-            const pauseBtn = document.getElementById('pause-btn');
-            const pauseOverlay = document.getElementById('pause-overlay');
-            const pauseIcon = document.getElementById('pause-icon');
-
-            function togglePause() {
-                isPaused = !isPaused;
-                if (isPaused) {
-                    pauseOverlay.classList.remove('hidden');
-                    pauseIcon.className = 'fa-solid fa-play';
-                } else {
-                    pauseOverlay.classList.add('hidden');
-                    pauseIcon.className = 'fa-solid fa-pause';
-                }
+            if (stats.bestTime !== null) {
+                const mins = Math.floor(stats.bestTime / 60).toString().padStart(2, '0');
+                const secs = (stats.bestTime % 60).toString().padStart(2, '0');
+                document.getElementById('stat-best-time').textContent = `${mins}:${secs}`;
+            } else {
+                document.getElementById('stat-best-time').textContent = '--:--';
             }
 
-            pauseBtn.addEventListener('click', togglePause);
-            document.getElementById('resume-btn').addEventListener('click', togglePause);
-            document.getElementById('restart-btn').addEventListener('click', () => startNewGame(currentDifficulty));
+            const recList = document.getElementById('records-list');
+            recList.innerHTML = '';
 
-            document.getElementById('modal-newgame-btn').addEventListener('click', () => startNewGame(currentDifficulty));
-            document.getElementById('modal-retry-btn').addEventListener('click', () => startNewGame(currentDifficulty));
+            if (stats.records.length === 0) {
+                recList.innerHTML = '<p class="text-slate-500 text-center py-4">성공 기록이 아직 없습니다.</p>';
+            } else {
+                stats.records.forEach(r => {
+                    const mins = Math.floor(r.time / 60).toString().padStart(2, '0');
+                    const secs = (r.time % 60).toString().padStart(2, '0');
+                    const item = document.createElement('div');
+                    item.className = 'flex items-center justify-between p-2 rounded-xl bg-slate-950/80 border border-slate-800';
+                    item.innerHTML = `
+                        <div>
+                            <p class="font-bold text-amber-400">+${r.score.toLocaleString()}점</p>
+                            <p class="text-[10px] text-slate-500">${r.date}</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="font-mono text-slate-300 font-semibold">${mins}:${secs}</p>
+                            <p class="text-[10px] text-rose-400">실수 ${r.mistakes}/3</p>
+                        </div>
+                    `;
+                    recList.appendChild(item);
+                });
+            }
+        }
 
-            document.addEventListener('keydown', (e) => {
-                if (isPaused) return;
-
-                if (e.key >= '1' && e.key <= '9') {
-                    handleInput(parseInt(e.key));
-                } else if (e.key === 'Backspace' || e.key === 'Delete') {
-                    eraseCell();
-                } else if (e.key === 'n' || e.key === 'N') {
-                    pencilBtn.click();
-                } else if (e.key === 'a' || e.key === 'A') {
-                    autoFillNotes();
-                } else if (e.key === 'z' || e.key === 'Z') {
-                    undo();
-                } else if (e.key.startsWith('Arrow')) {
-                    if (selectedRow === -1 || selectedCol === -1) {
-                        selectCell(0, 0);
-                        return;
-                    }
-                    let r = selectedRow;
-                    let c = selectedCol;
-                    if (e.key === 'ArrowUp') r = Math.max(0, r - 1);
-                    if (e.key === 'ArrowDown') r = Math.min(8, r + 1);
-                    if (e.key === 'ArrowLeft') c = Math.max(0, c - 1);
-                    if (e.key === 'ArrowRight') c = Math.min(8, c + 1);
-                    selectCell(r, c);
-                }
-            });
+        // Keyboard Shortcuts
+        window.addEventListener('keydown', (e) => {
+            if (e.key >= '1' && e.key <= '9') {
+                inputNumber(parseInt(e.key));
+            } else if (e.key === 'Backspace' || e.key === 'Delete') {
+                eraseCell();
+            } else if (e.key.toLowerCase() === 'm') {
+                togglePencilMode();
+            }
         });
+
+        // Start Game on Load
+        window.onload = function() {
+            startNewGame();
+        };
     </script>
 </body>
 </html>
