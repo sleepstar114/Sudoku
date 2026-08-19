@@ -2,8 +2,16 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>프리미엄 스도쿠 (Sudoku Master)</title>
+    
+    <!-- PWA & Mobile Web App Meta Tags for Mobile/Galaxy S25 -->
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#0f172a">
+    <meta name="description" content="갤럭시 S25 최적화 프리미엄 스도쿠 퍼즐 게임">
+
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- FontAwesome Icons -->
@@ -39,12 +47,13 @@
             font-family: 'Plus Jakarta Sans', sans-serif;
             touch-action: manipulation;
             user-select: none;
+            -webkit-user-select: none;
         }
 
         /* 3x3 Grid thick borders */
         .sudoku-cell {
             aspect-ratio: 1 / 1;
-            transition: all 0.15s ease-in-out;
+            transition: background-color 0.1s ease, transform 0.1s ease;
         }
         
         .border-r-thick {
@@ -368,6 +377,7 @@
         let isPencilMode = false;
         let isMouseDown = false;
         let isMultiDrag = false;
+        let lastTouchTime = 0; // Debounce touch vs mouse double-fire
 
         let currentDifficulty = 'medium';
         let mistakeCount = 0;
@@ -684,7 +694,6 @@
         }
 
         function isValidCandidate(r, c, num) {
-            // Check if num is valid in currentBoard row, column, and 3x3 block
             for (let i = 0; i < 9; i++) {
                 if (currentBoard[r][i] === num) return false;
                 if (currentBoard[i][c] === num) return false;
@@ -780,10 +789,8 @@
         }
 
         function generateSudoku(difficulty) {
-            // 1. Create empty 9x9
             const fullBoard = Array.from({ length: 9 }, () => Array(9).fill(0));
             
-            // 2. Fill diagonal 3x3 boxes for randomized generation speed
             for (let i = 0; i < 9; i += 3) {
                 const nums = [1, 2, 3, 4, 5, 6, 7, 8, 9].sort(() => Math.random() - 0.5);
                 let idx = 0;
@@ -794,11 +801,9 @@
                 }
             }
 
-            // 3. Solve completely
             solveSudoku(fullBoard);
             solutionBoard = fullBoard.map(row => [...row]);
 
-            // 4. Remove elements while strictly enforcing a UNIQUE solution
             const puzzleBoard = fullBoard.map(row => [...row]);
             const targetClues = DIFFICULTY_PREFILL[difficulty] || 34;
 
@@ -818,18 +823,16 @@
                 const temp = puzzleBoard[r][c];
                 puzzleBoard[r][c] = 0;
 
-                // 해가 오직 1개인 경우에만 숫자를 지움
                 if (countSolutions(puzzleBoard, 2) === 1) {
                     cluesRemaining--;
                 } else {
-                    puzzleBoard[r][c] = temp; // 다중 해가 발생하면 다시 복원
+                    puzzleBoard[r][c] = temp;
                 }
             }
 
             initialBoard = puzzleBoard.map(row => [...row]);
             currentBoard = puzzleBoard.map(row => [...row]);
 
-            // Reset Notes
             notesGrid = Array.from({ length: 9 }, () =>
                 Array.from({ length: 9 }, () => new Set())
             );
@@ -839,11 +842,10 @@
             const gridContainer = document.getElementById('sudoku-grid');
             gridContainer.innerHTML = '';
 
-            // Mouse release global listener for drag selection
             window.addEventListener('mouseup', () => { isMouseDown = false; isMultiDrag = false; });
             window.addEventListener('touchend', () => { isMouseDown = false; isMultiDrag = false; });
 
-            // Touch Drag multi-cell selection support for mobile devices
+            // Touch Drag multi-cell selection support
             gridContainer.addEventListener('touchmove', (e) => {
                 if (!isMouseDown || !isMultiDrag) return;
                 const touch = e.touches[0];
@@ -866,15 +868,14 @@
                     cell.dataset.row = r;
                     cell.dataset.col = c;
                     
-                    // Style base layout
-                    cell.className = `sudoku-cell flex items-center justify-center relative cursor-pointer border border-slate-700/60 font-extrabold text-lg sm:text-xl transition-all duration-150 select-none`;
+                    cell.className = `sudoku-cell flex items-center justify-center relative cursor-pointer border border-slate-700/60 font-extrabold text-lg sm:text-xl transition-all duration-100 select-none`;
                     
-                    // Thick subgrid borders
-                    if (c === 2 || c === 5) cell.classList.add('border-r-thick', 'border-r-slate-500');
-                    if (r === 2 || r === 5) cell.classList.add('border-b-thick', 'border-b-slate-500');
+                    if (c === 2 || c === 5) cell.classList.add('border-r-thick', 'border-r-slate-400');
+                    if (r === 2 || r === 5) cell.classList.add('border-b-thick', 'border-b-slate-400');
 
-                    // Multi-cell Mouse & Touch Drag Selection Events
+                    // Mouse pointer events with touch debouncing
                     cell.addEventListener('mousedown', (e) => {
+                        if (Date.now() - lastTouchTime < 400) return; // Prevent double-fire on touch devices
                         isMouseDown = true;
                         const isMultiKey = e.shiftKey || e.ctrlKey || e.metaKey;
                         isMultiDrag = isMultiKey;
@@ -888,6 +889,7 @@
                     });
 
                     cell.addEventListener('touchstart', (e) => {
+                        lastTouchTime = Date.now();
                         isMouseDown = true;
                         const isMultiKey = e.shiftKey || e.ctrlKey || e.metaKey;
                         isMultiDrag = isMultiKey;
@@ -934,44 +936,45 @@
                 const isInitial = initialBoard[r][c] !== 0;
                 const cellKey = `${r},${c}`;
 
-                // Reset cell interior
                 cell.innerHTML = '';
-                cell.className = `sudoku-cell flex items-center justify-center relative cursor-pointer border border-slate-700/50 font-extrabold text-lg sm:text-2xl transition-all duration-100`;
+                cell.className = `sudoku-cell flex items-center justify-center relative cursor-pointer border border-slate-700/60 font-extrabold text-lg sm:text-2xl transition-all duration-100`;
 
                 if (c === 2 || c === 5) cell.classList.add('border-r-thick', 'border-r-slate-400');
                 if (r === 2 || r === 5) cell.classList.add('border-b-thick', 'border-b-slate-400');
 
-                // Highlighting States logic
                 const isCellSelected = selectedCellsSet.has(cellKey);
                 const isSameRowOrCol = (r === selectedRow || c === selectedCol);
                 const isSameSubgrid = (Math.floor(r/3) === Math.floor(selectedRow/3) && Math.floor(c/3) === Math.floor(selectedCol/3));
                 const isSameValue = (selectedVal !== 0 && val === selectedVal);
 
+                // HIGH CONTRAST HIGHLIGHTING SYSTEM (Mobile OLED & PC Optimized)
                 if (isCellSelected) {
-                    cell.classList.add('bg-indigo-600', 'text-white', 'shadow-inner', 'ring-2', 'ring-indigo-300', 'z-10');
+                    cell.classList.add('bg-indigo-600', 'text-white', 'shadow-lg', 'ring-4', 'ring-indigo-300', 'z-20', 'scale-[1.02]');
                 } else if (isSameValue) {
-                    cell.classList.add('bg-indigo-900/60', 'text-indigo-200');
+                    // Glowing Highlight for cells matching selected number
+                    cell.classList.add('bg-indigo-800', 'text-amber-300', 'ring-2', 'ring-indigo-400/80', 'font-black', 'z-10');
                 } else if (isSameRowOrCol || isSameSubgrid) {
-                    cell.classList.add('bg-slate-800/90', 'text-slate-200');
+                    // Bright clear crosshair for Row/Col/3x3 Block
+                    cell.classList.add('bg-slate-700/80', 'text-slate-100');
                 } else {
-                    cell.classList.add('bg-slate-900', 'text-slate-200');
+                    cell.classList.add('bg-slate-900', 'text-slate-300');
                 }
 
-                // Candidate notes matching selected cell value in same row/col/grid
                 const isRelatedArea = (isSameRowOrCol || isSameSubgrid);
 
                 // Render Cell Content
                 if (val !== 0) {
                     cell.textContent = val;
                     if (isInitial) {
-                        cell.classList.add('text-slate-100', 'font-black');
+                        cell.classList.add('font-black');
+                        if (!isSameValue && !isCellSelected) cell.classList.add('text-slate-100');
                     } else {
                         // User filled
                         if (val === solutionBoard[r][c]) {
-                            if (!isCellSelected) cell.classList.add('text-indigo-400');
+                            if (!isCellSelected && !isSameValue) cell.classList.add('text-indigo-400');
                         } else {
                             // Incorrect number
-                            cell.classList.add('text-rose-400', 'bg-rose-950/40');
+                            cell.classList.add('text-rose-400', 'bg-rose-950/80', 'ring-2', 'ring-rose-500');
                         }
                     }
                 } else if (notesGrid[r][c].size > 0) {
@@ -985,7 +988,7 @@
                         const isMatchingNoteToSelectedVal = (selectedVal !== 0 && isNotePresent && n === selectedVal && isRelatedArea);
 
                         if (isMatchingNoteToSelectedVal) {
-                            noteNum.className = 'flex items-center justify-center font-bold text-[11px] text-amber-300 bg-amber-500/30 rounded-full scale-110 shadow-sm border border-amber-400/50 animate-pulse';
+                            noteNum.className = 'flex items-center justify-center font-bold text-[11px] text-amber-300 bg-amber-500/40 rounded-full scale-110 shadow-sm border border-amber-300 animate-pulse';
                         } else {
                             noteNum.className = 'flex items-center justify-center font-semibold text-[10px] text-amber-300/80';
                         }
@@ -1000,13 +1003,11 @@
             updateNumpadCounts();
         }
 
-        // Update Remaining Number Counters
         function updateNumpadCounts() {
             const counts = {1:0, 2:0, 3:0, 4:0, 5:0, 6:0, 7:0, 8:0, 9:0};
             for (let r = 0; r < 9; r++) {
                 for (let c = 0; c < 9; c++) {
                     const val = currentBoard[r][c];
-                    // Only count correctly placed numbers or existing initial numbers
                     if (val >= 1 && val <= 9 && val === solutionBoard[r][c]) {
                         counts[val]++;
                     }
@@ -1042,21 +1043,18 @@
             const historyBatch = [];
 
             if (isPencilMode) {
-                // Multi-cell pencil mode with candidate validation
                 selectedCellsSet.forEach(key => {
                     const [r, c] = key.split(',').map(Number);
                     if (initialBoard[r][c] !== 0 || currentBoard[r][c] !== 0) return;
 
                     const prevNotes = new Set(notesGrid[r][c]);
 
-                    // Validate if number can be logically entered in this cell
                     if (!isValidCandidate(r, c, num)) {
                         const cellElem = document.querySelector(`.sudoku-cell[data-row="${r}"][data-col="${c}"]`);
                         triggerErrorFeedback(cellElem);
-                        return; // Skip invalid cell
+                        return;
                     }
 
-                    // Toggle Pencil Note
                     if (notesGrid[r][c].has(num)) {
                         notesGrid[r][c].delete(num);
                     } else {
@@ -1068,7 +1066,6 @@
                 });
 
             } else {
-                // Main Number Input for selected cell
                 if (selectedRow === -1 || selectedCol === -1) return;
                 if (initialBoard[selectedRow][selectedCol] !== 0) return;
 
@@ -1083,8 +1080,8 @@
 
                     if (num !== solutionBoard[selectedRow][selectedCol]) {
                         mistakeCount++;
-                        streakCombo = 0; // Reset combo
-                        currentScore = Math.max(0, currentScore - 300); // Deduct for mistake
+                        streakCombo = 0;
+                        currentScore = Math.max(0, currentScore - 300);
                         document.getElementById('mistake-count').textContent = mistakeCount;
                         document.getElementById('score-display').textContent = currentScore.toLocaleString();
                         
@@ -1093,7 +1090,6 @@
                             return;
                         }
                     } else {
-                        // Correct Placement -> Add Score with Combo Bonus
                         streakCombo++;
                         const basePts = BASE_CELL_POINTS[currentDifficulty] || 100;
                         const comboBonus = (streakCombo > 1) ? (streakCombo * 20) : 0;
@@ -1121,7 +1117,7 @@
             if (initialBoard[selectedRow][selectedCol] !== 0) return;
 
             hintsUsed++;
-            currentScore = Math.max(0, currentScore - 200); // Penalty for hint
+            currentScore = Math.max(0, currentScore - 200);
             document.getElementById('score-display').textContent = currentScore.toLocaleString();
 
             const correctNum = solutionBoard[selectedRow][selectedCol];
@@ -1184,15 +1180,13 @@
             clearInterval(timerInterval);
 
             if (isWin) {
-                // Calculate Final Time Speed Bonus
-                const targetTime = 900; // 15 mins reference standard
+                const targetTime = 900;
                 const timeDiff = Math.max(0, targetTime - secondsElapsed);
                 const timeBonus = Math.round(timeDiff * 2 * (DIFF_MULTIPLIER[currentDifficulty] || 1));
                 
                 const finalScore = currentScore + timeBonus;
                 const isNewBest = recordGameWin(currentDifficulty, finalScore, secondsElapsed, mistakeCount);
 
-                // Fire victory confetti
                 confetti({
                     particleCount: 120,
                     spread: 70,
@@ -1233,16 +1227,10 @@
             document.getElementById('mistake-count').textContent = mistakeCount;
             document.getElementById('score-display').textContent = '0';
 
-            const diffLabel = document.getElementById('current-diff-label');
-            if (diffLabel) {
-                diffLabel.textContent = DIFFICULTY_NAMES[difficulty];
-            }
-
             document.getElementById('pause-overlay').classList.add('hidden');
             document.getElementById('win-modal').classList.add('hidden');
             document.getElementById('gameover-modal').classList.add('hidden');
 
-            // Update difficulty tab UI
             document.querySelectorAll('.diff-btn').forEach(btn => {
                 if (btn.dataset.diff === difficulty) {
                     btn.className = 'diff-btn flex-1 py-2 text-xs sm:text-sm font-bold rounded-xl bg-indigo-600 text-white shadow transition duration-200';
@@ -1261,14 +1249,12 @@
         document.addEventListener('DOMContentLoaded', () => {
             startNewGame('medium');
 
-            // Difficulty buttons
             document.querySelectorAll('.diff-btn').forEach(btn => {
                 btn.addEventListener('click', (e) => {
                     startNewGame(e.target.dataset.diff);
                 });
             });
 
-            // Numpad buttons
             document.querySelectorAll('.num-btn').forEach(btn => {
                 btn.addEventListener('click', () => {
                     const num = parseInt(btn.dataset.num);
@@ -1276,7 +1262,6 @@
                 });
             });
 
-            // Stats Modal Events
             const statsModal = document.getElementById('stats-modal');
             document.getElementById('stats-btn').addEventListener('click', () => {
                 updateStatsUI(currentDifficulty);
@@ -1306,7 +1291,6 @@
                 }
             });
 
-            // Action Tool buttons
             document.getElementById('undo-btn').addEventListener('click', undo);
             document.getElementById('erase-btn').addEventListener('click', eraseCell);
             document.getElementById('auto-notes-btn').addEventListener('click', autoFillNotes);
@@ -1328,7 +1312,6 @@
                 }
             });
 
-            // Pause / Resume
             const pauseBtn = document.getElementById('pause-btn');
             const pauseOverlay = document.getElementById('pause-overlay');
             const pauseIcon = document.getElementById('pause-icon');
@@ -1348,11 +1331,9 @@
             document.getElementById('resume-btn').addEventListener('click', togglePause);
             document.getElementById('restart-btn').addEventListener('click', () => startNewGame(currentDifficulty));
 
-            // Modal buttons
             document.getElementById('modal-newgame-btn').addEventListener('click', () => startNewGame(currentDifficulty));
             document.getElementById('modal-retry-btn').addEventListener('click', () => startNewGame(currentDifficulty));
 
-            // Keyboard navigation and key press controls
             document.addEventListener('keydown', (e) => {
                 if (isPaused) return;
 
