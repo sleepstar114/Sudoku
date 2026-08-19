@@ -13,35 +13,35 @@
         * {
             user-select: none;
             -webkit-user-select: none;
+            -webkit-tap-highlight-color: transparent;
         }
 
         body {
             font-family: 'Inter', sans-serif;
             touch-action: manipulation;
-            -webkit-tap-highlight-color: transparent;
             background-color: #0b0f19;
             color: #f8fafc;
         }
 
-        /* 확실하고 유효한 고대비 하이라이트 전용 커스텀 CSS (순수 CSS 적용으로 AMOLED/모바일 완벽 대응) */
+        /* High Contrast Custom Highlight CSS Classes */
         .cell-selected {
-            background-color: #3b82f6 !important; /* Bright Blue 500 */
+            background-color: #2563eb !important; /* Bright Blue 600 */
             color: #ffffff !important;
-            box-shadow: inset 0 0 0 2px #93c5fd, 0 0 12px rgba(59, 130, 246, 0.8) !important;
+            box-shadow: inset 0 0 0 2px #93c5fd, 0 0 14px rgba(37, 99, 235, 0.9) !important;
             z-index: 20 !important;
         }
         .cell-same-value {
-            background-color: #312e81 !important; /* Deep Indigo 900 */
+            background-color: #3730a3 !important; /* Indigo 800 */
             color: #fbbf24 !important; /* Amber 400 */
             font-weight: 900 !important;
             z-index: 10 !important;
         }
         .cell-highlight-area {
-            background-color: #4b5563 !important; /* Pure Slate/Zinc Medium Gray - AMOLED에서도 명확히 잘 보임 */
+            background-color: #374151 !important; /* Slate/Gray 700 - Highly Visible Gray in Dark Mode */
             color: #ffffff !important;
         }
         .cell-base {
-            background-color: #0f172a !important; /* Dark Slate 900 */
+            background-color: #0f172a !important; /* Slate 900 */
             color: #cbd5e1 !important;
         }
 
@@ -216,7 +216,7 @@
 
     <!-- Instruction Helper Text -->
     <p class="text-[11px] text-slate-500 text-center my-1">
-        드래그 또는 Ctrl/Shift+클릭으로 여러 칸 선택 후 동시에 메모를 입력할 수 있습니다.
+        터치 또는 Ctrl/Shift+클릭으로 다중 선택 후 메모를 입력할 수 있습니다.
     </p>
 
     <!-- Leaderboard / Stats Modal -->
@@ -545,9 +545,17 @@
                         }
                     }
 
-                    // Mouse & Touch Selection Event Listeners
-                    cell.addEventListener('mousedown', (e) => handleCellSelectStart(r, c, e));
-                    cell.addEventListener('mouseenter', (e) => handleCellSelectHover(r, c, e));
+                    // Unified Pointer Event Listeners for Mobile Touch & Desktop Click
+                    cell.addEventListener('pointerdown', (e) => {
+                        e.preventDefault();
+                        handleCellSelectStart(r, c, e);
+                    });
+                    
+                    cell.addEventListener('pointerenter', (e) => {
+                        if (isMouseDown && (e.shiftKey || isPencilMode)) {
+                            handleCellSelectHover(r, c, e);
+                        }
+                    });
 
                     gridEl.appendChild(cell);
                 }
@@ -568,7 +576,7 @@
                 // Shift Click: Add to Selection
                 selectedCells.add(key);
             } else {
-                // Default Single Click Selection
+                // Default Single Click / Touch Selection
                 selectedCells.clear();
                 selectedCells.add(key);
             }
@@ -576,13 +584,11 @@
         }
 
         function handleCellSelectHover(r, c, e) {
-            if (isMouseDown && (e.shiftKey || isPencilMode)) {
-                selectedCells.add(`${r}-${c}`);
-                renderBoard();
-            }
+            selectedCells.add(`${r}-${c}`);
+            renderBoard();
         }
 
-        window.addEventListener('mouseup', () => { isMouseDown = false; });
+        window.addEventListener('pointerup', () => { isMouseDown = false; });
 
         // Touch Drag Multi-selection Support
         document.getElementById('sudoku-grid').addEventListener('touchmove', (e) => {
@@ -879,7 +885,6 @@
             renderBoard();
             startTimer();
 
-            // Track played count
             saveStatPlayed(difficulty);
         }
 
