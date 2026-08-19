@@ -53,7 +53,8 @@
         /* 3x3 Grid thick borders */
         .sudoku-cell {
             aspect-ratio: 1 / 1;
-            transition: background-color 0.1s ease, transform 0.1s ease;
+            transition: background-color 0.15s ease, transform 0.1s ease;
+            -webkit-tap-highlight-color: transparent; /* Disable native browser touch flash overlay */
         }
         
         .border-r-thick {
@@ -949,14 +950,16 @@
 
                 // HIGH CONTRAST HIGHLIGHTING SYSTEM (Mobile OLED & PC Optimized)
                 if (isCellSelected) {
+                    // Selected active cell
                     cell.classList.add('bg-indigo-600', 'text-white', 'shadow-lg', 'ring-4', 'ring-indigo-300', 'z-20', 'scale-[1.02]');
                 } else if (isSameValue) {
                     // Glowing Highlight for cells matching selected number
                     cell.classList.add('bg-indigo-800', 'text-amber-300', 'ring-2', 'ring-indigo-400/80', 'font-black', 'z-10');
                 } else if (isSameRowOrCol || isSameSubgrid) {
                     // Solid high-contrast crosshair highlight for Mobile AMOLED displays
-                    cell.classList.add('bg-slate-700', 'text-white');
+                    cell.classList.add('bg-indigo-900/60', 'bg-slate-800', 'text-white', 'border-indigo-500/30');
                 } else {
+                    // Unselected base cell
                     cell.classList.add('bg-slate-900', 'text-slate-300');
                 }
 
