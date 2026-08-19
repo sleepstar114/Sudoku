@@ -954,8 +954,8 @@
                     // Glowing Highlight for cells matching selected number
                     cell.classList.add('bg-indigo-800', 'text-amber-300', 'ring-2', 'ring-indigo-400/80', 'font-black', 'z-10');
                 } else if (isSameRowOrCol || isSameSubgrid) {
-                    // Bright clear crosshair for Row/Col/3x3 Block
-                    cell.classList.add('bg-slate-700/80', 'text-slate-100');
+                    // Solid high-contrast crosshair highlight for Mobile AMOLED displays
+                    cell.classList.add('bg-slate-700', 'text-white');
                 } else {
                     cell.classList.add('bg-slate-900', 'text-slate-300');
                 }
